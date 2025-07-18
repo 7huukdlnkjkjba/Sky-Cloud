@@ -49,6 +49,7 @@ fn main() {
     for py_file in python_files {
         let file_name = py_file.file_stem().unwrap().to_str().unwrap();
         let output_dir = current_dir.join("dist").join(file_name);
+        let binary_path = output_dir.join(file_name);
 
         println!("Compiling: {:?}", py_file);
 
@@ -63,7 +64,17 @@ fn main() {
 
         if status.success() {
             println!("Successfully compiled: {:?}", py_file);
-            println!("Output binary: {:?}", output_dir.join(file_name));
+            println!("Output binary: {:?}", binary_path);
+
+            // Auto-run the compiled binary
+            println!("Attempting to run the compiled binary...");
+            let run_status = Command::new(&binary_path)
+                .status()
+                .expect("Failed to run the compiled binary");
+
+            if !run_status.success() {
+                eprintln!("Binary execution failed with exit code: {:?}", run_status.code());
+            }
         } else {
             eprintln!("Failed to compile: {:?}", py_file);
         }
@@ -73,8 +84,14 @@ fn main() {
     if Path::new("build").exists() {
         fs::remove_dir_all("build").expect("Failed to remove build directory");
     }
-    if Path::new(file_name.to_owned() + ".spec").exists() {
-        fs::remove_file(file_name.to_owned() + ".spec").expect("Failed to remove .spec file");
+    
+    // Clean up .spec files for each compiled file
+    for py_file in python_files {
+        let file_name = py_file.file_stem().unwrap().to_str().unwrap();
+        let spec_file = format!("{}.spec", file_name);
+        if Path::new(&spec_file).exists() {
+            fs::remove_file(&spec_file).expect("Failed to remove .spec file");
+        }
     }
 
     println!("Done!");
