@@ -464,6 +464,17 @@ class CyberEnvironment:
 class SkyCloudController:
     """天云主控制器"""
     def __init__(self):
+        # 初始化核心模块
+        self.apt = APTModule()          # APT攻击模块
+        self.metasploit = MetaAutoPwn() # 自动化漏洞利用
+        self.quantum = QSDEXController()# 量子通信模块
+        self.coder = AutoCoder()        # 代码生成模块
+        self.hardware = HardwareC2()    # 硬件渗透模块
+        
+        # 状态跟踪
+        self.current_phase = "recon"    # 初始阶段：侦察
+        self.target_info = {}
+    def __init__(self):
         # 定义动作空间
         self.action_space = [
             "exploit",       # 漏洞利用
