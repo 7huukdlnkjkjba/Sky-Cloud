@@ -20,6 +20,27 @@ class HumanAttention(nn.Module):
         attn = F.softmax(q @ k.T / np.sqrt(k.size(-1)), dim=-1)
         return attn @ v
 
+
+class AdversarialTrainingWrapper(nn.Module):
+    """对抗训练增强的决策模型"""
+
+    def __init__(self, base_model):
+        super().__init__()
+        self.base_model = base_model
+        self.adversarial_filter = nn.Sequential(
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.Sigmoid()  # 输出对抗样本置信度
+        )
+
+    def forward(self, x):
+        adv_score = self.adversarial_filter(x)
+        if adv_score > 0.7:  # 检测到对抗样本
+            x = x + torch.randn_like(x) * 0.1  # 加入噪声破坏对抗样本
+        return self.base_model(x)
+
+
 # --- 决策模型 ---
 class CognitiveDecisionMaker(nn.Module):
     def __init__(self):
@@ -45,7 +66,7 @@ if __name__ == "__main__":
     # 注意力处理
     attended = attention(x)
     print("注意力输出形状:", attended.shape)  # 应为 [1, 128]
-    
-    # 决策输出
-    decision = decision_maker(attended.squeeze(0))
-    print("决策概率:", decision.detach().numpy())
+
+    # 修改原决策流程
+    decision_maker = CognitiveDecisionMaker()
+    hardened_decision_maker = AdversarialTrainingWrapper(decision_maker)

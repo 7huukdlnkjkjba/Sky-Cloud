@@ -249,6 +249,26 @@ def parse_args():
                        help="全自动模式（包含漏洞利用）")
     return parser.parse_args()
 
+
+class ZeroDayExploitManager:
+    def __init__(self):
+        self.vault = {
+            'windows': ['cve-2023-1234_kerberos', 'cve-2023-5678_rdp'],
+            'linux': ['cve-2023-9012_sudo', 'cve-2023-3456_nfs']
+        }
+
+    def get_exploit(self, os_type):
+        return self.vault.get(os_type, [])
+
+
+# 修改漏洞选择逻辑
+def _select_exploit(self, service):
+    # 优先尝试0day
+    if zero_day := ZeroDayExploitManager().get_exploit(service['os_type']):
+        return zero_day[0]
+    # 备用公开漏洞
+    return sorted(VULN_DB.get(service['name'], key=lambda x: x['cvss'], reverse=True)[0]
+
 if __name__ == "__main__":
     print("""
     ███╗   ███╗███████╗████████╗ █████╗ ██████╗ ██╗     

