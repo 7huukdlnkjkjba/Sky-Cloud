@@ -3,111 +3,98 @@ import time
 from datetime import datetime, timedelta
 import socket
 import paramiko
-import geoip2.database
+import hashlib
+import os
 
-class FalseFlagAttackSimulator:
+
+class AdvancedAttackSimulator:
     def __init__(self):
-        # 模拟的跳板服务器列表 (实际应用中这些是真实服务器)
-        self.proxy_servers = [
-            {"ip": "203.0.113.1", "country": "US", "provider": "AWS"},
-            {"ip": "198.51.100.2", "country": "DE", "provider": "Hetzner"},
-            {"ip": "192.0.2.3", "country": "RU", "provider": "Selectel"},
-            {"ip": "203.0.113.4", "country": "CN", "provider": "Alibaba Cloud"}
+        # 模拟的C2服务器和跳板
+        self.c2_servers = [
+            {"ip": "203.0.113.10", "type": "C2", "location": "US"},
+            {"ip": "198.51.100.20", "type": "Proxy", "location": "DE"},
+            {"ip": "192.0.2.30", "type": "Relay", "location": "RU"}
         ]
-        
-        # 虚假线索库 - 用于False Flag操作
-        self.false_flags = {
-            "APT29": {
-                "language": "ru_RU",
-                "tools": ["Mimikatz", "Cobalt Strike"],
-                "working_hours": "09:00-17:00 MSK",
-                "code_style": "// Комментарии на русском"
+
+        # 常见攻击工具指纹
+        self.tool_fingerprints = {
+            "Cobalt Strike": {
+                "http_header": "Server: Apache/2.4.7 (Ubuntu)",
+                "ssl_cert_hash": "a1b2c3d4e5f6",
+                "behavior": "Beacon every 5 minutes"
             },
-            "Lazarus": {
-                "language": "ko_KR",
-                "tools": ["AppleJeus", "Dtrack"],
-                "working_hours": "10:00-18:00 KST",
-                "code_style": "/* 한국어 주석 */"
+            "Metasploit": {
+                "http_header": "Server: Apache/2.2.15 (CentOS)",
+                "ssl_cert_hash": "x7y8z9a1b2c3",
+                "behavior": "Randomized URI paths"
             }
         }
-        
-        # 初始化GeoIP数据库
-        try:
-            self.geoip_reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
-        except:
-            print("GeoIP数据库未找到，地理定位功能不可用")
 
-    def create_ssh_tunnel_chain(self, target_ip, target_port, hops=3):
-        """
-        模拟通过SSH隧道创建多层跳板连接
-        """
-        print(f"\n[+] 建立 {hops} 层SSH跳板连接到 {target_ip}:{target_port}")
-        
-        # 随机选择跳板服务器
-        selected_proxies = random.sample(self.proxy_servers, hops)
-        
-        # 模拟SSH隧道建立过程
-        for i, proxy in enumerate(selected_proxies):
-            print(f"  → 跳板 {i+1}: {proxy['ip']} ({proxy['country']}, {proxy['provider']})")
-            time.sleep(0.5)
-        
-        print(f"[+] 最终连接从 {selected_proxies[-1]['ip']} 发起至目标")
+    def simulate_c2_communication(self, target_ip):
+        """模拟C2通信"""
+        print(f"\n[+] 模拟与C2服务器的通信: {target_ip}")
 
-    def generate_false_flag_artifacts(self, group_to_imitate):
-        """
-        生成虚假攻击线索以嫁祸给特定组织
-        """
-        if group_to_imitate not in self.false_flags:
-            print(f"未知组织: {group_to_imitate}")
-            return
-        
-        flag_data = self.false_flags[group_to_imitate]
-        
-        print(f"\n[+] 生成 {group_to_imitate} 的虚假攻击线索:")
-        print(f"  - 语言设置: {flag_data['language']}")
-        print(f"  - 工具痕迹: {', '.join(flag_data['tools'])}")
-        print(f"  - 工作时间: {flag_data['working_hours']}")
-        
-        # 生成虚假时间戳以匹配目标组织的时区
-        if "MSK" in flag_data['working_hours']:
-            timezone_offset = timedelta(hours=3)  # 莫斯科时间
-        elif "KST" in flag_data['working_hours']:
-            timezone_offset = timedelta(hours=9)  # 韩国时间
-        else:
-            timezone_offset = timedelta(hours=0)
-            
-        fake_time = datetime.utcnow() + timezone_offset
-        print(f"  - 伪造时间戳: {fake_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        # 生成虚假代码片段
-        print("\n[虚假代码片段]")
-        print(flag_data['code_style'])
-        print("def malicious_payload():")
-        print("    # 这里放置恶意代码")
-        print("    pass\n")
+        # 随机选择C2服务器
+        c2 = random.choice(self.c2_servers)
+        print(f"  → 使用C2服务器: {c2['ip']} ({c2['location']})")
 
-    def simulate_attack(self, target, false_flag_group=None):
-        """
-        模拟攻击过程
-        """
-        print(f"\n=== 开始模拟攻击: {target} ===")
-        
-        # 随机选择2-4层跳板
-        hop_count = random.randint(2, 4)
-        self.create_ssh_tunnel_chain(target, 22, hop_count)
-        
-        # 如果需要False Flag操作
-        if false_flag_group:
-            self.generate_false_flag_artifacts(false_flag_group)
-        
-        print("\n[+] 攻击模拟完成")
+        # 模拟HTTP请求
+        tool = random.choice(list(self.tool_fingerprints.keys()))
+        fingerprint = self.tool_fingerprints[tool]
+        print(f"  → 工具指纹: {tool}")
+        print(f"     HTTP Header: {fingerprint['http_header']}")
+        print(f"     SSL Cert Hash: {fingerprint['ssl_cert_hash']}")
+
+        # 模拟心跳通信
+        for i in range(3):
+            time.sleep(random.uniform(2, 5))
+            print(f"  → 心跳信号 #{i + 1} 发送到 {c2['ip']}")
+
+    def generate_malicious_file(self, file_type="exe"):
+        """生成模拟恶意文件"""
+        print("\n[+] 生成模拟恶意文件")
+
+        # 创建文件哈希
+        random_data = os.urandom(256)
+        file_hash = hashlib.sha256(random_data).hexdigest()
+
+        # 模拟常见恶意文件特征
+        if file_type == "exe":
+            print(f"  → 生成PE文件 (SHA256: {file_hash[:16]}...)")
+            print("     PE特征: 加壳区段, 可疑导入表")
+        elif file_type == "doc":
+            print(f"  → 生成恶意文档 (SHA256: {file_hash[:16]}...)")
+            print("     包含宏代码: AutoOpen()执行powershell")
+
+        return file_hash
+
+    def simulate_lateral_movement(self, target_network):
+        """模拟横向移动"""
+        print(f"\n[+] 模拟横向移动在 {target_network}")
+
+        # 模拟SMB传播
+        print("  → 尝试通过SMB传播")
+        time.sleep(1)
+
+        # 模拟凭证窃取
+        print("  → 使用Mimikatz提取凭证")
+        print("     Administrator: NTLM hash [a1b2c3d4e5f6]")
+
+        # 模拟PsExec执行
+        print("  → 通过PsExec在内部主机执行payload")
+        for i in range(1, 4):
+            print(f"     感染内部主机: 192.168.1.{i}")
+
 
 # 使用示例
 if __name__ == "__main__":
-    simulator = FalseFlagAttackSimulator()
-    
-    # 模拟普通多层跳板攻击
-    simulator.simulate_attack("192.168.1.100")
-    
-    # 模拟带有False Flag的定向嫁祸攻击
-    simulator.simulate_attack("10.0.0.50", "APT29")
+    simulator = AdvancedAttackSimulator()
+
+    # 模拟C2通信
+    simulator.simulate_c2_communication("10.0.0.100")
+
+    # 生成恶意文件
+    simulator.generate_malicious_file("doc")
+
+    # 模拟横向移动
+    simulator.simulate_lateral_movement("192.168.1.0/24")

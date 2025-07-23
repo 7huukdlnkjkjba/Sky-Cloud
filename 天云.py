@@ -24,6 +24,7 @@ from APT恶意代码 import APTModule
 from 全自动化漏洞流程metasploit import MetaAutoPwn
 from 量子模块 import HybridQuantumCrypto
 from 硬件渗透模块 import HardwareC2
+from 多层跳板加虚假攻击嫁祸 import FalseFlagAttackSimulator
 
 # ==================== 法律声明 ====================
 LEGAL_DISCLAIMER = """
