@@ -13,6 +13,8 @@ import cmd
 import json
 import torch
 import numpy as np
+import subprocess
+import importlib
 from typing import Dict, List, Optional
 from datetime import datetime
 from transformers import BertModel, BertTokenizer
@@ -36,6 +38,49 @@ LEGAL_DISCLAIMER = """
 """
 
 print(LEGAL_DISCLAIMER)
+
+
+# ==================== 模块加载器 ====================
+class ModuleLoader:
+    """动态加载和管理各个功能模块"""
+
+    def __init__(self):
+        self.loaded_modules = {}
+        self.available_modules = {
+            'thinker': '思考模块',
+            'coder': '自动写代码',
+            'apt': 'APT恶意代码',
+            'metasploit': '全自动化漏洞流程metasploit',
+            'quantum': '量子模块',
+            'hardware': '硬件渗透模块',
+            'falseflag': '多层跳板加虚假攻击嫁祸'
+        }
+
+    def load_module(self, module_name: str):
+        """动态加载指定模块"""
+        if module_name not in self.available_modules:
+            raise ValueError(f"未知模块: {module_name}")
+
+        if module_name not in self.loaded_modules:
+            try:
+                module = importlib.import_module(self.available_modules[module_name])
+                self.loaded_modules[module_name] = module
+                print(f"✅ 模块 {module_name} 加载成功")
+                return module
+            except Exception as e:
+                raise ImportError(f"无法加载模块 {module_name}: {str(e)}")
+        return self.loaded_modules[module_name]
+
+    def get_module_function(self, module_name: str, function_name: str):
+        """获取模块中的特定函数"""
+        module = self.loaded_modules.get(module_name)
+        if not module:
+            module = self.load_module(module_name)
+
+        func = getattr(module, function_name, None)
+        if not func:
+            raise AttributeError(f"模块 {module_name} 中没有函数 {function_name}")
+        return func
 
 
 # ==================== AI模型部分 ====================
@@ -208,6 +253,7 @@ class SkyCloudCLI(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.ai_engine = SkyCloudAI()
+        self.module_loader = ModuleLoader()
         self.current_target = None
         self.session_log = []
 
@@ -258,10 +304,81 @@ class SkyCloudCLI(cmd.Cmd):
         print(f"🔍 AI正在分析 {target_info['ip']}...")
         try:
             recommendation = self.ai_engine.recommend_attack(target_info)
-            self._display_recommendation(recommendation)
+            self._display_recommendation(recommation)
             self.current_target = target_info
         except Exception as e:
             print(f"❌ AI分析失败: {e}")
+
+    def do_load_module(self, arg: str):
+        """
+        加载指定模块
+        用法: load_module <模块名>
+        可用模块: thinker, coder, apt, metasploit, quantum, hardware, falseflag
+        """
+        try:
+            self.module_loader.load_module(arg.strip())
+        except Exception as e:
+            print(f"❌ 加载模块失败: {e}")
+
+    def do_run_apt(self, arg: str):
+        """
+        运行APT攻击模块
+        用法: run_apt <目标IP>
+        """
+        try:
+            apt_module = self.module_loader.load_module('apt')
+            apt = apt_module.APTModule()
+            print("🚀 启动APT攻击模块...")
+            apt.apt_main()
+        except Exception as e:
+            print(f"❌ APT模块执行失败: {e}")
+
+    def do_run_metasploit(self, arg: str):
+        """
+        运行自动化Metasploit模块
+        用法: run_metasploit <目标IP或网络>
+        """
+        try:
+            msf_module = self.module_loader.load_module('metasploit')
+            engine = msf_module.MetaAutoPwn()
+            print("🚀 启动Metasploit自动化模块...")
+            engine.scan_network(arg.strip())
+            engine.auto_exploit()
+        except Exception as e:
+            print(f"❌ Metasploit模块执行失败: {e}")
+
+    def do_run_quantum(self, arg: str):
+        """
+        运行量子加密通信
+        用法: run_quantum <目标IP>
+        """
+        try:
+            quantum_module = self.module_loader.load_module('quantum')
+            controller = quantum_module.QSDEXController()
+            print("🔐 启动量子安全通信...")
+            payload = controller.secure_transfer(b"Test quantum data", arg.strip())
+            print(f"量子加密负载: {payload}")
+        except Exception as e:
+            print(f"❌ 量子模块执行失败: {e}")
+
+    def do_run_falseflag(self, arg: str):
+        """
+        运行虚假攻击嫁祸模块
+        用法: run_falseflag <目标IP> <嫁祸国家代码>
+        """
+        try:
+            args = arg.split()
+            if len(args) < 2:
+                print("❌ 需要目标IP和嫁祸国家代码")
+                return
+
+            falseflag_module = self.module_loader.load_module('falseflag')
+            simulator = falseflag_module.FalseFlagAttackSimulator()
+            print("🎭 启动虚假攻击嫁祸模块...")
+            simulator.simulate_c2_communication(args[0])
+            print(f"正在伪造攻击痕迹指向 {args[1]}...")
+        except Exception as e:
+            print(f"❌ 虚假攻击模块执行失败: {e}")
 
     def _parse_args(self, arg: str) -> Dict:
         """解析命令行参数"""
