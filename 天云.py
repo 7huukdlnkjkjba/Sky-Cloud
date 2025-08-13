@@ -342,3 +342,4 @@ if __name__ == "__main__":
             result = skycloud.full_spectrum_attack(target)
             print(f"[攻击结果] 策略: {result['strategy']}")
             print(f"[攻击结果] 载荷: {result['payload'][:50]}...")
+
