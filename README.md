@@ -1,8 +1,8 @@
 # 天云智能渗透测试框架 (SkyCloud Penetration Testing Framework) ☠️
 
-![危险等级](https://img.shields.io/badge/危险等级-毁灭级-black) 
-![授权要求](https://img.shields.io/badge/授权要求-五角大楼级_许可-red) 
-![破解性](https://img.shields.io/badge/加密等级-量子态-blueviolet)
+![危险等级](https://img.shields.io/badge/危险等级-毁灭世界-black) 
+![授权要求](https://img.shields.io/badge/授权要求-国家级_许可-red) 
+![破解性](https://img.shields.io/badge/破解性-量子态-blueviolet)
 
 ---
 
