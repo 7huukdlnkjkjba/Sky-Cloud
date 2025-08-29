@@ -25,6 +25,735 @@ import sys
 from collections import OrderedDict
 from libnmap.parser import NmapParser
 
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+天云智能攻击框架 - 网络战自主智能体版
+新增模块:
+1. 实时网络态势感知系统 (Real-time Cyber Situational Awareness)
+2. 自适应目标画像学习系统 (Adaptive Target Profiling)
+3. 对抗性AI训练模块 (Adversarial AI Training)
+"""
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+from collections import deque
+import networkx as nx
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from datetime import datetime
+import json
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+# ====================== 实时网络态势感知系统 ======================
+class NetworkSituationalAwareness:
+    """实时网络态势感知系统"""
+    
+    def __init__(self):
+        self.network_graph = nx.Graph()
+        self.device_profiles = {}
+        self.traffic_patterns = deque(maxlen=1000)
+        self.threat_level = 0.0
+        self.anomaly_detector = AnomalyDetectionEngine()
+        self.topology_mapper = TopologyMappingEngine()
+        self.executor = ThreadPoolExecutor(max_workers=5)
+        
+        # 启动实时监控
+        self.monitoring_active = True
+        self.monitor_thread = threading.Thread(target=self._continuous_monitoring)
+        self.monitor_thread.daemon = True
+        self.monitor_thread.start()
+    
+    def _continuous_monitoring(self):
+        """持续网络监控循环"""
+        while self.monitoring_active:
+            try:
+                # 1. 实时流量分析
+                traffic_data = self.capture_network_traffic()
+                self.traffic_patterns.append(traffic_data)
+                
+                # 2. 异常检测
+                anomalies = self.anomaly_detector.detect(traffic_data)
+                
+                # 3. 拓扑更新
+                self.topology_mapper.update_topology()
+                
+                # 4. 威胁评估
+                self._assess_threat_level(anomalies)
+                
+                # 5. 可视化更新 (可选)
+                self._update_visualization()
+                
+                time.sleep(2)  # 每2秒更新一次
+            except Exception as e:
+                print(f"态势感知监控错误: {str(e)}")
+                time.sleep(5)
+    
+    def capture_network_traffic(self):
+        """捕获网络流量数据"""
+        # 这里简化实现，实际应使用Scapy或类似库
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'total_flows': random.randint(100, 1000),
+            'bytes_sent': random.randint(1000000, 10000000),
+            'bytes_received': random.randint(1000000, 50000000),
+            'unique_ips': random.randint(50, 500),
+            'protocols': {'TCP': random.randint(70, 90), 'UDP': random.randint(10, 25), 'ICMP': random.randint(0, 5)}
+        }
+    
+    def _assess_threat_level(self, anomalies):
+        """评估网络威胁级别"""
+        base_threat = 0.0
+        
+        # 基于异常数量
+        base_threat += min(0.5, len(anomalies) * 0.1)
+        
+        # 基于异常严重性
+        if anomalies:
+            avg_severity = sum(a.get('severity', 0) for a in anomalies) / len(anomalies)
+            base_threat += min(0.3, avg_severity * 0.3)
+        
+        # 基于网络暴露面
+        exposed_services = self._count_exposed_services()
+        base_threat += min(0.2, exposed_services * 0.05)
+        
+        self.threat_level = min(1.0, base_threat)
+        
+        # 威胁级别变化事件
+        if self.threat_level > 0.7:
+            self._on_high_threat_level()
+    
+    def _on_high_threat_level(self):
+        """高威胁级别响应"""
+        print(f"[!] 警告: 网络威胁级别高 ({self.threat_level:.2f})")
+        # 触发自动防御措施
+        # 可以连接天云框架的响应模块
+    
+    def _count_exposed_services(self):
+        """计算暴露的服务数量"""
+        return random.randint(0, 20)  # 简化实现
+    
+    def _update_visualization(self):
+        """更新网络态势可视化"""
+        # 可选: 实现实时网络拓扑可视化
+        pass
+    
+    def get_network_health(self):
+        """获取网络健康度评分"""
+        return 1.0 - self.threat_level
+    
+    def get_recommendations(self):
+        """获取安全建议"""
+        recommendations = []
+        
+        if self.threat_level > 0.7:
+            recommendations.append("立即隔离受影响系统")
+            recommendations.append("启动事件响应程序")
+        elif self.threat_level > 0.4:
+            recommendations.append("加强网络监控")
+            recommendations.append("审查防火墙规则")
+        
+        return recommendations
+
+class AnomalyDetectionEngine:
+    """异常检测引擎"""
+    
+    def __init__(self):
+        self.model = self._train_initial_model()
+        self.known_anomalies = self._load_known_anomalies()
+    
+    def detect(self, traffic_data):
+        """检测网络异常"""
+        anomalies = []
+        
+        # 基于规则的检测
+        anomalies.extend(self._rule_based_detection(traffic_data))
+        
+        # 基于机器学习的检测
+        anomalies.extend(self._ml_based_detection(traffic_data))
+        
+        return anomalies
+    
+    def _rule_based_detection(self, traffic_data):
+        """基于规则的异常检测"""
+        anomalies = []
+        
+        # 示例规则: 异常高的流量
+        if traffic_data['bytes_sent'] > 50000000:  # 50MB
+            anomalies.append({
+                'type': 'HIGH_TRAFFIC',
+                'severity': 0.7,
+                'description': f"异常高流量: {traffic_data['bytes_sent']} bytes"
+            })
+        
+        # 示例规则: 异常协议比例
+        if traffic_data['protocols'].get('ICMP', 0) > 10:  # ICMP占比超过10%
+            anomalies.append({
+                'type': 'ICMP_FLOOD',
+                'severity': 0.6,
+                'description': f"异常ICMP流量: {traffic_data['protocols']['ICMP']}%"
+            })
+            
+        return anomalies
+    
+    def _ml_based_detection(self, traffic_data):
+        """基于机器学习的异常检测"""
+        # 简化实现 - 实际应使用训练好的模型
+        anomalies = []
+        
+        # 随机生成一些异常用于演示
+        if random.random() < 0.2:  # 20%概率检测到异常
+            anomalies.append({
+                'type': 'ML_ANOMALY',
+                'severity': round(random.uniform(0.3, 0.8), 2),
+                'description': "机器学习检测到的未知异常模式"
+            })
+            
+        return anomalies
+    
+    def _train_initial_model(self):
+        """训练初始异常检测模型"""
+        # 简化实现 - 实际应使用历史数据训练
+        return "placeholder_model"
+    
+    def _load_known_anomalies(self):
+        """加载已知异常模式"""
+        # 可从文件或数据库加载
+        return [
+            {'pattern': 'HIGH_TRAFFIC', 'description': '异常高网络流量'},
+            {'pattern': 'ICMP_FLOOD', 'description': 'ICMP洪水攻击'},
+            {'pattern': 'PORT_SCAN', 'description': '端口扫描活动'}
+        ]
+
+class TopologyMappingEngine:
+    """网络拓扑映射引擎"""
+    
+    def __init__(self):
+        self.network_graph = nx.Graph()
+        self.last_update = datetime.now()
+    
+    def update_topology(self):
+        """更新网络拓扑"""
+        # 简化实现 - 实际应使用nmap或类似工具
+        new_nodes = []
+        
+        # 模拟发现新设备
+        if random.random() < 0.1:  # 10%概率发现新设备
+            device_id = f"device_{random.randint(100, 999)}"
+            new_nodes.append(device_id)
+            self.network_graph.add_node(device_id, type=random.choice(['server', 'workstation', 'iot']))
+            
+        # 模拟发现新连接
+        if len(self.network_graph.nodes) > 1 and random.random() < 0.2:
+            nodes = list(self.network_graph.nodes)
+            if len(nodes) >= 2:
+                node1, node2 = random.sample(nodes, 2)
+                self.network_graph.add_edge(node1, node2, weight=random.random())
+        
+        self.last_update = datetime.now()
+        
+        return new_nodes
+    
+    def get_network_map(self):
+        """获取当前网络地图"""
+        return {
+            'nodes': list(self.network_graph.nodes(data=True)),
+            'edges': list(self.network_graph.edges(data=True)),
+            'last_update': self.last_update
+        }
+
+# ====================== 自适应目标画像学习系统 ======================
+class AdaptiveTargetProfiler:
+    """自适应目标画像学习系统"""
+    
+    def __init__(self):
+        self.target_profiles = {}
+        self.behavior_models = {}
+        self.learning_rate = 0.1  # 学习率
+        self.profile_history = deque(maxlen=1000)
+    
+    def update_profile(self, target_ip, new_observations):
+        """更新目标画像"""
+        if target_ip not in self.target_profiles:
+            self.target_profiles[target_ip] = self._create_default_profile(target_ip)
+        
+        profile = self.target_profiles[target_ip]
+        
+        # 合并新观察数据
+        profile['last_observed'] = datetime.now().isoformat()
+        profile['observation_count'] += 1
+        
+        # 更新网络行为
+        if 'network_behavior' in new_observations:
+            self._update_network_behavior(profile, new_observations['network_behavior'])
+        
+        # 更新系统特征
+        if 'system_info' in new_observations:
+            self._update_system_info(profile, new_observations['system_info'])
+        
+        # 更新漏洞信息
+        if 'vulnerabilities' in new_observations:
+            self._update_vulnerabilities(profile, new_observations['vulnerabilities'])
+        
+        # 记录历史
+        self.profile_history.append({
+            'timestamp': datetime.now().isoformat(),
+            'target': target_ip,
+            'updates': new_observations
+        })
+        
+        return profile
+    
+    def _create_default_profile(self, target_ip):
+        """创建默认目标画像"""
+        return {
+            'ip': target_ip,
+            'first_observed': datetime.now().isoformat(),
+            'last_observed': datetime.now().isoformat(),
+            'observation_count': 0,
+            'network_behavior': {
+                'active_hours': [],
+                'common_ports': [],
+                'data_volume': {'inbound': 0, 'outbound': 0}
+            },
+            'system_info': {
+                'os': 'unknown',
+                'services': [],
+                'architecture': 'unknown'
+            },
+            'vulnerabilities': [],
+            'threat_rating': 0.0,
+            'value_rating': 0.0
+        }
+    
+    def _update_network_behavior(self, profile, network_behavior):
+        """更新网络行为画像"""
+        # 合并活动时间
+        if 'active_hours' in network_behavior:
+            new_hours = network_behavior['active_hours']
+            current_hours = profile['network_behavior']['active_hours']
+            profile['network_behavior']['active_hours'] = list(set(current_hours + new_hours))
+        
+        # 合并常用端口
+        if 'common_ports' in network_behavior:
+            new_ports = network_behavior['common_ports']
+            current_ports = profile['network_behavior']['common_ports']
+            profile['network_behavior']['common_ports'] = list(set(current_ports + new_ports))
+        
+        # 更新数据量统计
+        if 'data_volume' in network_behavior:
+            new_volume = network_behavior['data_volume']
+            current_volume = profile['network_behavior']['data_volume']
+            
+            # 指数加权移动平均更新
+            for direction in ['inbound', 'outbound']:
+                if direction in new_volume:
+                    current = current_volume.get(direction, 0)
+                    new = new_volume[direction]
+                    current_volume[direction] = (1 - self.learning_rate) * current + self.learning_rate * new
+    
+    def _update_system_info(self, profile, system_info):
+        """更新系统信息"""
+        for key, value in system_info.items():
+            if key in profile['system_info']:
+                # 对于列表类型，合并去重
+                if isinstance(profile['system_info'][key], list):
+                    profile['system_info'][key] = list(set(profile['system_info'][key] + value))
+                else:
+                    # 对于其他类型，直接替换（除非有冲突）
+                    if profile['system_info'][key] == 'unknown' or profile['system_info'][key] == value:
+                        profile['system_info'][key] = value
+                    else:
+                        # 冲突处理：记录多个可能值
+                        if not isinstance(profile['system_info'][key], list):
+                            profile['system_info'][key] = [profile['system_info'][key]]
+                        profile['system_info'][key].append(value)
+            else:
+                profile['system_info'][key] = value
+    
+    def _update_vulnerabilities(self, profile, vulnerabilities):
+        """更新漏洞信息"""
+        for vuln in vulnerabilities:
+            if vuln not in profile['vulnerabilities']:
+                profile['vulnerabilities'].append(vuln)
+                
+                # 根据漏洞更新威胁评级
+                self._update_threat_rating(profile, vuln)
+    
+    def _update_threat_rating(self, profile, vulnerability):
+        """根据漏洞更新威胁评级"""
+        # 简化实现 - 实际应根据CVSS分数等计算
+        severity_scores = {
+            'critical': 0.9,
+            'high': 0.7,
+            'medium': 0.5,
+            'low': 0.3
+        }
+        
+        # 提取漏洞严重性（简化处理）
+        severity = 'medium'
+        for level in severity_scores:
+            if level in vulnerability.lower():
+                severity = level
+                break
+                
+        # 更新威胁评级
+        profile['threat_rating'] = min(1.0, profile.get('threat_rating', 0) + severity_scores[severity] * 0.1)
+    
+    def get_target_profile(self, target_ip):
+        """获取目标画像"""
+        return self.target_profiles.get(target_ip, self._create_default_profile(target_ip))
+    
+    def get_all_profiles(self):
+        """获取所有目标画像"""
+        return self.target_profiles
+    
+    def find_similar_targets(self, target_ip, threshold=0.7):
+        """查找相似目标"""
+        target_profile = self.get_target_profile(target_ip)
+        similar = []
+        
+        for ip, profile in self.target_profiles.items():
+            if ip == target_ip:
+                continue
+                
+            similarity = self._calculate_similarity(target_profile, profile)
+            if similarity >= threshold:
+                similar.append((ip, similarity))
+        
+        return sorted(similar, key=lambda x: x[1], reverse=True)
+    
+    def _calculate_similarity(self, profile1, profile2):
+        """计算两个目标画像的相似度"""
+        similarity = 0.0
+        total_weight = 0
+        
+        # OS相似度
+        if profile1['system_info']['os'] == profile2['system_info']['os']:
+            similarity += 1.0 * 0.3
+        total_weight += 0.3
+        
+        # 服务相似度
+        common_services = set(profile1['system_info'].get('services', [])) & set(profile2['system_info'].get('services', []))
+        all_services = set(profile1['system_info'].get('services', [])) | set(profile2['system_info'].get('services', []))
+        if all_services:
+            similarity += len(common_services) / len(all_services) * 0.4
+        total_weight += 0.4
+        
+        # 漏洞相似度
+        common_vulns = set(profile1['vulnerabilities']) & set(profile2['vulnerabilities'])
+        all_vulns = set(profile1['vulnerabilities']) | set(profile2['vulnerabilities'])
+        if all_vulns:
+            similarity += len(common_vulns) / len(all_vulns) * 0.3
+        total_weight += 0.3
+        
+        return similarity / total_weight if total_weight > 0 else 0
+
+# ====================== 对抗性AI训练模块 ======================
+class AdversarialAITrainer:
+    """对抗性AI训练模块"""
+    
+    def __init__(self, neural_engine):
+        self.neural_engine = neural_engine
+        self.attack_simulator = AttackSimulator()
+        self.defense_simulator = DefenseSimulator()
+        self.training_history = []
+        
+        # 启动定期训练
+        self.training_thread = threading.Thread(target=self._periodic_training)
+        self.training_thread.daemon = True
+        self.training_thread.start()
+    
+    def _periodic_training(self):
+        """定期进行对抗训练"""
+        while True:
+            try:
+                # 每6小时训练一次
+                time.sleep(6 * 3600)
+                self.train()
+            except Exception as e:
+                print(f"对抗训练错误: {str(e)}")
+                time.sleep(3600)  # 出错后1小时重试
+    
+    def train(self):
+        """执行对抗训练"""
+        print("[对抗训练] 开始新一轮对抗训练")
+        
+        # 1. 生成攻击场景
+        attack_scenarios = self.attack_simulator.generate_scenarios()
+        
+        # 2. 生成防御策略
+        defense_strategies = self.defense_simulator.generate_strategies()
+        
+        # 3. 执行对抗模拟
+        results = []
+        for scenario in attack_scenarios[:5]:  # 限制数量以提高效率
+            for strategy in defense_strategies[:5]:
+                result = self._simulate_engagement(scenario, strategy)
+                results.append(result)
+        
+        # 4. 更新神经网络
+        self._update_neural_engine(results)
+        
+        # 5. 记录训练结果
+        self.training_history.append({
+            'timestamp': datetime.now().isoformat(),
+            'results': results,
+            'scenarios_count': len(attack_scenarios),
+            'strategies_count': len(defense_strategies)
+        })
+        
+        print(f"[对抗训练] 训练完成，模拟了 {len(results)} 次对抗")
+        
+        return results
+    
+    def _simulate_engagement(self, attack_scenario, defense_strategy):
+        """模拟攻防对抗"""
+        # 简化实现 - 实际应使用更复杂的模拟引擎
+        success_prob = attack_scenario['effectiveness'] * (1 - defense_strategy['effectiveness'])
+        success = random.random() < success_prob
+        
+        return {
+            'attack_scenario': attack_scenario['id'],
+            'defense_strategy': defense_strategy['id'],
+            'success': success,
+            'success_probability': success_prob,
+            'damage_estimate': attack_scenario['damage_potential'] if success else 0
+        }
+    
+    def _update_neural_engine(self, results):
+        """根据训练结果更新神经网络"""
+        # 计算平均成功率
+        success_rate = sum(1 for r in results if r['success']) / len(results) if results else 0
+        
+        # 调整神经网络参数
+        # 这里简化实现，实际应使用更复杂的强化学习算法
+        if success_rate < 0.3:
+            print("[对抗训练] 攻击效果不佳，调整策略生成网络")
+            # 实际应调整神经网络的权重或结构
+        elif success_rate > 0.7:
+            print("[对抗训练] 攻击效果良好，保持当前策略")
+        
+        return success_rate
+
+class AttackSimulator:
+    """攻击场景模拟器"""
+    
+    def __init__(self):
+        self.scenario_templates = self._load_scenario_templates()
+        self.last_id = 0
+    
+    def generate_scenarios(self):
+        """生成攻击场景"""
+        scenarios = []
+        
+        for template in self.scenario_templates:
+            # 基于模板生成变体
+            for i in range(3):  # 每个模板生成3个变体
+                scenario = self._create_scenario_variant(template)
+                scenarios.append(scenario)
+        
+        return scenarios
+    
+    def _create_scenario_variant(self, template):
+        """创建场景变体"""
+        self.last_id += 1
+        
+        # 随机调整效果参数
+        effectiveness = max(0.1, min(0.99, template['base_effectiveness'] + random.uniform(-0.2, 0.2)))
+        damage_potential = max(0.1, min(0.99, template['base_damage'] + random.uniform(-0.2, 0.2)))
+        
+        return {
+            'id': f"attack_{self.last_id}",
+            'type': template['type'],
+            'description': template['description'],
+            'effectiveness': effectiveness,
+            'damage_potential': damage_potential,
+            'requirements': template['requirements']
+        }
+    
+    def _load_scenario_templates(self):
+        """加载攻击场景模板"""
+        return [
+            {
+                'type': 'phishing',
+                'description': '鱼叉式钓鱼攻击',
+                'base_effectiveness': 0.7,
+                'base_damage': 0.6,
+                'requirements': ['email_access', 'social_engineering']
+            },
+            {
+                'type': 'vulnerability_exploit',
+                'description': '漏洞利用攻击',
+                'base_effectiveness': 0.5,
+                'base_damage': 0.8,
+                'requirements': ['vulnerability_info', 'exploit_code']
+            },
+            {
+                'type': 'credential_stuffing',
+                'description': '凭证填充攻击',
+                'base_effectiveness': 0.4,
+                'base_damage': 0.5,
+                'requirements': ['credential_database', 'service_access']
+            }
+        ]
+
+class DefenseSimulator:
+    """防御策略模拟器"""
+    
+    def __init__(self):
+        self.strategy_templates = self._load_strategy_templates()
+        self.last_id = 0
+    
+    def generate_strategies(self):
+        """生成防御策略"""
+        strategies = []
+        
+        for template in self.strategy_templates:
+            # 基于模板生成变体
+            for i in range(3):  # 每个模板生成3个变体
+                strategy = self._create_strategy_variant(template)
+                strategies.append(strategy)
+        
+        return strategies
+    
+    def _create_strategy_variant(self, template):
+        """创建策略变体"""
+        self.last_id += 1
+        
+        # 随机调整效果参数
+        effectiveness = max(0.1, min(0.99, template['base_effectiveness'] + random.uniform(-0.2, 0.2)))
+        cost = max(0.1, min(0.99, template['base_cost'] + random.uniform(-0.2, 0.2)))
+        
+        return {
+            'id': f"defense_{self.last_id}",
+            'type': template['type'],
+            'description': template['description'],
+            'effectiveness': effectiveness,
+            'cost': cost,
+            'requirements': template['requirements']
+        }
+    
+    def _load_strategy_templates(self):
+        """加载防御策略模板"""
+        return [
+            {
+                'type': 'multi_factor_auth',
+                'description': '多因素身份验证',
+                'base_effectiveness': 0.8,
+                'base_cost': 0.4,
+                'requirements': ['auth_infrastructure']
+            },
+            {
+                'type': 'intrusion_detection',
+                'description': '入侵检测系统',
+                'base_effectiveness': 0.6,
+                'base_cost': 0.7,
+                'requirements': ['network_monitoring']
+            },
+            {
+                'type': 'patch_management',
+                'description': '补丁管理程序',
+                'base_effectiveness': 0.7,
+                'base_cost': 0.5,
+                'requirements': ['vulnerability_scanning']
+            }
+        ]
+
+# ====================== 天云系统升级集成 ======================
+class EnhancedSkyCloudSystem(SkyCloudSystem):
+    """增强版天云系统 - 集成新模块"""
+    
+    def __init__(self):
+        super().__init__()
+        
+        # 初始化新模块
+        self.situational_awareness = NetworkSituationalAwareness()
+        self.target_profiler = AdaptiveTargetProfiler()
+        self.adversarial_trainer = AdversarialAITrainer(self.module_manager.modules['neural_engine'])
+        
+        print("[天云核心] 网络战自主智能体模块加载完成")
+    
+    def full_spectrum_attack(self, target_ip):
+        """增强版全频谱攻击 - 集成态势感知和目标画像"""
+        # 1. 更新目标画像
+        target_info = self._gather_target_info(target_ip)
+        self.target_profiler.update_profile(target_ip, target_info)
+        
+        # 2. 检查网络态势
+        if self.situational_awareness.threat_level > 0.6:
+            print(f"[!] 警告: 网络威胁级别高 ({self.situational_awareness.threat_level:.2f})")
+            # 可选择调整攻击策略或延迟攻击
+        
+        # 3. 执行原攻击流程
+        result = super().full_spectrum_attack(target_ip)
+        
+        # 4. 更新攻击结果到目标画像
+        attack_outcome = {
+            'success': '成功' in result['attack_result'],
+            'techniques_used': [result['strategy']],
+            'vulnerabilities_exploited': result['vulnerabilities']
+        }
+        self.target_profiler.update_profile(target_ip, {'attack_outcomes': [attack_outcome]})
+        
+        return result
+    
+    def _gather_target_info(self, target_ip):
+        """收集目标信息用于画像"""
+        # 执行侦察扫描
+        scan_results = self.scanner.comprehensive_scan(target_ip)
+        
+        # 执行漏洞扫描
+        vulns = self.module_manager.execute_module_function('vuln_scanner', 'scan_target', target_ip)
+        
+        return {
+            'system_info': {
+                'os': scan_results.get('os', 'unknown'),
+                'services': [s['name'] for s in scan_results.get('services', [])],
+                'architecture': self._guess_architecture(scan_results.get('os', 'unknown'))
+            },
+            'vulnerabilities': vulns,
+            'network_behavior': {
+                'active_hours': [datetime.now().hour],
+                'common_ports': [s['port'] for s in scan_results.get('services', [])]
+            }
+        }
+    
+    def _guess_architecture(self, os_info):
+        """根据OS信息猜测架构"""
+        if 'windows' in os_info.lower():
+            return 'x64' if '64' in os_info else 'x86'
+        elif 'linux' in os_info.lower():
+            return 'x64'  # 大多数Linux系统是64位
+        else:
+            return 'unknown'
+    
+    def get_network_health(self):
+        """获取网络健康度"""
+        return self.situational_awareness.get_network_health()
+    
+    def get_target_profile(self, target_ip):
+        """获取目标画像"""
+        return self.target_profiler.get_target_profile(target_ip)
+    
+    def find_similar_targets(self, target_ip, threshold=0.7):
+        """查找相似目标"""
+        return self.target_profiler.find_similar_targets(target_ip, threshold)
+
+# ====================== 主执行系统 ======================
+def deploy_enhanced_skycloud_system():
+    """部署增强版天云系统"""
+    print("=" * 70)
+    print("天云智能防御框架 - 网络战自主智能体版")
+    print("新增: 实时态势感知 | 自适应目标画像 | 对抗性AI训练")
+    print("=" * 70)
+    return EnhancedSkyCloudSystem()
 
 # ====================== 核心模块 ======================
 class NeuralAdaptationEngine(nn.Module):
@@ -653,4 +1382,27 @@ if __name__ == "__main__":
             print(f"[攻击结果] 载荷: {result['payload']}")
             print(f"[攻击结果] 状态: {result['attack_result']}")
         else:
+
             print("[警告] 未发现存活主机")
+        # 部署增强版系统
+    skycloud = deploy_enhanced_skycloud_system()
+    
+    # 演示新功能
+    print("\n===== 网络态势感知演示 =====")
+    print(f"当前网络威胁级别: {skycloud.situational_awareness.threat_level:.2f}")
+    print(f"网络健康度: {skycloud.get_network_health():.2f}")
+    
+    print("\n===== 目标画像演示 =====")
+    # 模拟扫描一个目标并创建画像
+    target = "192.168.1.1"  # 示例目标
+    target_info = skycloud._gather_target_info(target)
+    skycloud.target_profiler.update_profile(target, target_info)
+    
+    profile = skycloud.get_target_profile(target)
+    print(f"目标 {target} 的画像:")
+    print(f"  操作系统: {profile['system_info']['os']}")
+    print(f"  服务数量: {len(profile['system_info']['services'])}")
+    print(f"  漏洞数量: {len(profile['vulnerabilities'])}")
+    print(f"  威胁评级: {profile['threat_rating']:.2f}")
+    
+    print("\n[天云] 网络战自主智能体已就绪，等待指令...")
