@@ -2,7 +2,7 @@
 
 ![危险等级](https://img.shields.io/badge/危险等级-毁灭级-black) 
 ![授权要求](https://img.shields.io/badge/授权要求-五角大楼级_许可-red) 
-![量子加密](https://img.shields.io/badge/加密等级-量子不可破解-blueviolet)
+![破解性](https://img.shields.io/badge/加密等级-量子态-blueviolet)
 
 ---
 
