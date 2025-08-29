@@ -11,17 +11,22 @@ import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import json
 import re
-from typing import List, Dict, Any
-import requests  # 添加requests导入
+from typing import List, Dict, Any, Optional, Tuple
+import requests
 
 
 class SocialEngineeringGenerator:
     """AI红队社会工程攻击生成器"""
 
-    def __init__(self, openai_api_key: str = None, local_model_path: str = None, ollama_model: str = None):
+    def __init__(
+        self,
+        openai_api_key: Optional[str] = None,
+        local_model_path: Optional[str] = None,
+        ollama_model: Optional[str] = None
+    ):
         self.openai_api_key = openai_api_key
         self.local_model_path = local_model_path
-        self.ollama_model = ollama_model  # Ollama模型名称
+        self.ollama_model = ollama_model
         self.local_model = None
         self.local_tokenizer = None
 
@@ -61,7 +66,7 @@ class SocialEngineeringGenerator:
         # 目标画像数据库
         self.target_profiles = {}
 
-    def _initialize_models(self):
+    def _initialize_models(self) -> None:
         """初始化AI模型"""
         if self.openai_api_key:
             openai.api_key = self.openai_api_key
@@ -78,7 +83,11 @@ class SocialEngineeringGenerator:
         if self.ollama_model:
             print(f"[AI红队] Ollama模型 {self.ollama_model} 已配置")
 
-    def generate_phishing_email(self, target_info: Dict[str, Any], template_type: str = "corporate") -> str:
+    def generate_phishing_email(
+        self,
+        target_info: Dict[str, Any],
+        template_type: str = "corporate"
+    ) -> str:
         """生成针对性钓鱼邮件"""
         # 选择模板主题
         subject = random.choice(self.templates["phishing_email"][template_type])
@@ -100,7 +109,11 @@ class SocialEngineeringGenerator:
 
         return self._generate_with_llm(prompt)
 
-    def generate_vishing_script(self, target_info: Dict[str, Any], scenario: str = "tech_support") -> str:
+    def generate_vishing_script(
+        self,
+        target_info: Dict[str, Any],
+        scenario: str = "tech_support"
+    ) -> str:
         """生成电话社会工程脚本"""
         # 选择场景
         scenario_name = random.choice(self.templates["vishing_script"][scenario])
@@ -122,7 +135,11 @@ class SocialEngineeringGenerator:
 
         return self._generate_with_llm(prompt)
 
-    def generate_malicious_document(self, target_info: Dict[str, Any], doc_type: str = "word") -> Dict[str, str]:
+    def generate_malicious_document(
+        self,
+        target_info: Dict[str, Any],
+        doc_type: str = "word"
+    ) -> Dict[str, str]:
         """生成恶意文档内容"""
         # 根据目标信息选择诱饵主题
         interests = target_info.get("interests", ["一般"])
@@ -150,7 +167,10 @@ class SocialEngineeringGenerator:
             "subject": f"请查阅: {topic}"
         }
 
-    def generate_spear_phishing_attack(self, target_info: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_spear_phishing_attack(
+        self,
+        target_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """生成完整的鱼叉钓鱼攻击方案"""
         # 分析目标信息以选择最佳攻击向量
         attack_vectors = self._analyze_target(target_info)
@@ -185,17 +205,19 @@ class SocialEngineeringGenerator:
 
         # 基于目标特征选择攻击向量
         if target_info.get("job_role"):
-            if "IT" in target_info["job_role"]:
+            job_role = target_info["job_role"]
+            if "IT" in job_role:
                 vectors.extend(["技术支持欺骗", "软件更新", "安全警报"])
-            elif "财务" in target_info["job_role"]:
+            elif "财务" in job_role:
                 vectors.extend(["发票查询", "付款请求", "预算审批"])
-            elif "人力资源" in target_info["job_role"]:
+            elif "人力资源" in job_role:
                 vectors.extend(["简历查询", "政策更新", "员工调查"])
 
         if target_info.get("industry"):
-            if target_info["industry"] in ["科技", "互联网"]:
+            industry = target_info["industry"]
+            if industry in ["科技", "互联网"]:
                 vectors.extend(["会议邀请", "API文档", "系统集成通知"])
-            elif target_info["industry"] in ["金融", "银行"]:
+            elif industry in ["金融", "银行"]:
                 vectors.extend(["账户验证", "交易确认", "合规检查"])
 
         # 默认向量
@@ -213,7 +235,7 @@ class SocialEngineeringGenerator:
             "侦查阶段": f"{random.choice(days)} {random.choice(times)}",
             "武器化阶段": f"{random.choice(days)} {random.choice(times)}",
             "交付阶段": f"{random.choice(days)} {random.choice(times)}",
-            "exploitation阶段": f"{random.choice(days)} {random.choice(times)}",
+            "利用阶段": f"{random.choice(days)} {random.choice(times)}",
             "安装阶段": f"{random.choice(days)} {random.choice(times)}",
             "C2阶段": f"{random.choice(days)} {random.choice(times)}",
             "行动阶段": f"{random.choice(days)} {random.choice(times)}"
@@ -278,7 +300,11 @@ class SocialEngineeringGenerator:
             print(f"[AI红队] 生成内容时出错: {str(e)}")
             return f"[生成失败: {str(e)}]"
 
-    def evaluate_attack_effectiveness(self, attack_content: str, target_info: Dict[str, Any]) -> float:
+    def evaluate_attack_effectiveness(
+        self,
+        attack_content: str,
+        target_info: Dict[str, Any]
+    ) -> float:
         """评估社会工程攻击的有效性"""
         # 简单启发式评估 - 在实际应用中应更复杂
         score = 0.5  # 基础分
@@ -310,7 +336,13 @@ class SocialEngineeringGenerator:
 class SelfImprovingSystem(nn.Module):
     """增强的自改进系统，集成AI红队功能"""
 
-    def __init__(self, base_model, openai_api_key=None, local_model_path=None, ollama_model=None):
+    def __init__(
+        self,
+        base_model: nn.Module,
+        openai_api_key: Optional[str] = None,
+        local_model_path: Optional[str] = None,
+        ollama_model: Optional[str] = None
+    ):
         super().__init__()
         self.base_model = base_model
         self.performance_history = deque(maxlen=100)
@@ -320,12 +352,13 @@ class SelfImprovingSystem(nn.Module):
         self.social_engineering = SocialEngineeringGenerator(
             openai_api_key=openai_api_key,
             local_model_path=local_model_path,
-            ollama_model=ollama_model  # 新增Ollama模型参数
+            ollama_model=ollama_model
         )
 
         self.setup_self_improvement_components()
 
-    def setup_self_improvement_components(self):
+    def setup_self_improvement_components(self) -> None:
+        """设置自改进系统的各个组件"""
         # 元学习组件
         self.meta_optimizer = Adam(self.base_model.parameters(), lr=0.001)
         self.hyperparameter_buffer = {
@@ -343,7 +376,7 @@ class SelfImprovingSystem(nn.Module):
             'loss': [],
             'latency': [],
             'memory_usage': [],
-            'social_engineering_success': []  # 新增社会工程成功率指标
+            'social_engineering_success': []
         }
 
         # 经验回放缓冲区
@@ -352,12 +385,16 @@ class SelfImprovingSystem(nn.Module):
         # 社会工程目标数据库
         self.target_database = []
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.base_model(x)
 
-    def evaluate_performance(self, val_loader):
+    def evaluate_performance(
+        self,
+        val_loader: Any
+    ) -> Tuple[float, float]:
+        """评估模型性能"""
         self.eval()
-        total_loss = 0
+        total_loss = 0.0
         correct = 0
         total = 0
 
@@ -380,7 +417,10 @@ class SelfImprovingSystem(nn.Module):
 
         return accuracy, avg_loss
 
-    def generate_social_engineering_attack(self, target_info):
+    def generate_social_engineering_attack(
+        self,
+        target_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """生成社会工程攻击并评估其有效性"""
         # 选择攻击类型
         attack_type = random.choice(["phishing_email", "vishing_script", "malicious_document"])
@@ -404,7 +444,11 @@ class SelfImprovingSystem(nn.Module):
             "target": target_info
         }
 
-    def self_optimize(self, train_loader, val_loader):
+    def self_optimize(
+        self,
+        train_loader: Any,
+        val_loader: Any
+    ) -> float:
         """执行自我优化迭代"""
         self.optimization_cycles += 1
 
@@ -415,7 +459,7 @@ class SelfImprovingSystem(nn.Module):
         best_params = self.hyperparameter_search(train_loader, val_loader)
 
         # 3. 架构进化
-        if self.optimization_cycles % 5 == 0:  # 每5次迭代考虑架构更新
+        if self.optimization_cycles % 5 == 0:
             self.architecture_evolution()
 
         # 4. 在线学习调整
@@ -425,8 +469,8 @@ class SelfImprovingSystem(nn.Module):
         if len(self.experience_buffer) > 100:
             self.experience_replay()
 
-        # 6. 社会工程攻击生成优化 (新增)
-        if self.optimization_cycles % 3 == 0:  # 每3次迭代优化社会工程
+        # 6. 社会工程攻击生成优化
+        if self.optimization_cycles % 3 == 0:
             self.optimize_social_engineering()
 
         # 评估优化后的性能
@@ -439,7 +483,7 @@ class SelfImprovingSystem(nn.Module):
 
         return improvement
 
-    def optimize_social_engineering(self):
+    def optimize_social_engineering(self) -> None:
         """优化社会工程攻击策略"""
         if not self.target_database:
             print("没有目标数据，跳过社会工程优化")
@@ -463,14 +507,18 @@ class SelfImprovingSystem(nn.Module):
                 "content": attack_result["content"]
             })
 
-    def add_target(self, target_info):
+    def add_target(self, target_info: Dict[str, Any]) -> None:
         """添加目标到数据库"""
         self.target_database.append(target_info)
         print(f"已添加目标: {target_info.get('name', '未知')}")
 
-    def hyperparameter_search(self, train_loader, val_loader):
+    def hyperparameter_search(
+        self,
+        train_loader: Any,
+        val_loader: Any
+    ) -> Optional[Dict[str, Any]]:
         """基于性能的超参数搜索"""
-        best_acc = 0
+        best_acc = 0.0
         best_params = None
 
         for lr in self.hyperparameter_buffer['learning_rates']:
@@ -503,9 +551,9 @@ class SelfImprovingSystem(nn.Module):
 
         return best_params
 
-    def architecture_evolution(self):
+    def architecture_evolution(self) -> None:
         """基于性能的架构进化"""
-        current_acc = np.mean(self.performance_history) if self.performance_history else 0
+        current_acc = np.mean(self.performance_history) if self.performance_history else 0.0
 
         # 评估架构变体
         for variant in self.hyperparameter_buffer['architecture_variants']:
@@ -519,7 +567,7 @@ class SelfImprovingSystem(nn.Module):
                 print(f"Adopted new architecture: {variant}")
                 break
 
-    def create_architecture_variant(self, params):
+    def create_architecture_variant(self, params: Dict[str, Any]) -> nn.Module:
         """根据参数创建模型变体"""
         # 这里应该根据实际模型结构实现具体的创建逻辑
         # 示例实现：
@@ -535,69 +583,182 @@ class SelfImprovingSystem(nn.Module):
 
         return new_model
 
-    def evaluate_variant(self, variant_model, val_loader=None):
+    def evaluate_variant(
+        self,
+        variant_model: nn.Module,
+        val_loader: Optional[Any] = None
+    ) -> float:
         """评估架构变体性能"""
         # 在实际实现中应该使用验证集进行评估
         # 这里简化为随机性能
         return random.uniform(0.7, 0.9)
 
-    def online_learning_adjustment(self, current_accuracy):
+    def online_learning_adjustment(self, current_accuracy: float) -> None:
         """基于当前性能的在线学习调整"""
         # 如果性能下降，降低学习率
-        if len(self.performance_history) > 3 and current_accuracy < np.mean(list(self.performance_history)[-3:-1]):
+        if (len(self.performance_history) > 3 and
+            current_accuracy < np.mean(list(self.performance_history)[-3:-1])):
             new_lr = self.meta_optimizer.param_groups[0]['lr'] * 0.8
             self.meta_optimizer.param_groups[0]['lr'] = max(new_lr, 1e-6)
             print(f"Reduced learning rate to {new_lr}")
 
         # 如果性能稳定提升，增加学习率
-        elif len(self.performance_history) > 5 and current_accuracy > np.mean(self.performance_history):
+        elif (len(self.performance_history) > 5 and
+              current_accuracy > np.mean(self.performance_history)):
             new_lr = self.meta_optimizer.param_groups[0]['lr'] * 1.2
-            self.meta_optimizer.param_groups[0['lr'] = min(new_lr, 0.01)
+            self.meta_optimizer.param_groups[0]['lr'] = min(new_lr, 0.01)
             print(f"Increased learning rate to {new_lr}")
 
-    def experience_replay(self):
+    def experience_replay(self) -> None:
         """从记忆缓冲区中重放重要经验"""
         replay_size = min(32, len(self.experience_buffer))
-        replay_samples = random.sample(self.experience_buffer, replay_size)
+        replay_samples = random.sample(list(self.experience_buffer), replay_size)
 
         self.train()
         for sample in replay_samples:
-            inputs, targets = sample
-            outputs = self(inputs)
-            loss = F.cross_entropy(outputs, targets)
-            self.meta_optimizer.zero_grad()
-            loss.backward()
-            self.meta_optimizer.step()
+            if isinstance(sample, tuple) and len(sample) == 2:
+                inputs, targets = sample
+                outputs = self(inputs)
+                loss = F.cross_entropy(outputs, targets)
+                self.meta_optimizer.zero_grad()
+                loss.backward()
+                self.meta_optimizer.step()
 
-    def remember(self, inputs, targets):
+    def remember(self, inputs: torch.Tensor, targets: torch.Tensor) -> None:
         """存储重要经验到缓冲区"""
         self.experience_buffer.append((inputs, targets))
 
-    def save_state(self, path):
+    def save_state(self, path: str) -> None:
         """保存当前状态"""
         torch.save({
             'model_state': self.state_dict(),
             'optimizer_state': self.meta_optimizer.state_dict(),
-            'performance_history': self.performance_history,
+            'performance_history': list(self.performance_history),
             'monitoring_metrics': self.monitoring_metrics,
             'optimization_cycles': self.optimization_cycles
         }, path)
 
-    def load_state(self, path):
+    def load_state(self, path: str) -> None:
         """加载保存的状态"""
         checkpoint = torch.load(path)
         self.load_state_dict(checkpoint['model_state'])
         self.meta_optimizer.load_state_dict(checkpoint['optimizer_state'])
-        self.performance_history = checkpoint['performance_history']
+        self.performance_history = deque(checkpoint['performance_history'], maxlen=100)
         self.monitoring_metrics = checkpoint['monitoring_metrics']
         self.optimization_cycles = checkpoint['optimization_cycles']
+
+    class NaturalLanguageCommander:
+        def __init__(self):
+            self.intent_classifier = IntentClassifier()
+            self.entity_extractor = EntityExtractor()
+            self.command_builder = CommandBuilder()
+
+        def process_command(self, natural_language: str) -> Dict:
+            """解析自然语言命令"""
+            # 意图识别
+            intent = self.intent_classifier.classify(natural_language)
+
+            # 实体提取
+            entities = self.entity_extractor.extract(natural_language)
+
+            # 构建可执行命令
+            command = self.command_builder.build(intent, entities)
+
+            return command
+
+    # 示例命令：
+    # "天云，对192.168.1.0/24网段进行深度扫描，找出所有Windows主机"
+    # "生成一个针对财务部门的钓鱼邮件，主题为年度审计"
+
+    class MultiModalInterface:
+        def __init__(self):
+            self.speech_recognizer = SpeechRecognizer()
+            self.text_parser = TextParser()
+            self.gesture_recognizer = GestureRecognizer()
+
+        async def listen(self):
+            """监听多种输入方式"""
+            while True:
+                # 语音输入
+                if audio_input := self.speech_recognizer.capture():
+                    return self.process_audio(audio_input)
+
+                # 文字输入
+                if text_input := self.text_parser.get_input():
+                    return text_input
+
+                # 手势输入（AR/VR环境）
+                if gesture := self.gesture_recognizer.recognize():
+                    return self.process_gesture(gesture)
+
+
+class AIEvolutionEngine:
+    def __init__(self):
+        self.generation = 0
+        self.strategy_pool = StrategyPool()
+        self.reward_calculator = RewardCalculator()
+
+    def evolve(self, attack_result: Dict):
+        """基于攻击结果进行进化"""
+        # 计算奖励分数
+        reward = self.reward_calculator.calculate(
+            success=attack_result['success'],
+            stealth=attack_result['stealth'],
+            efficiency=attack_result['efficiency']
+        )
+
+        # 策略优化
+        if reward > self.best_reward:
+            self._mutate_strategies(reward)
+            self.generation += 1
+
+        # 知识沉淀
+        self._update_knowledge_base(attack_result)
+
+    def _mutate_strategies(self, reward: float):
+        """突变策略池"""
+        # 遗传算法选择
+        best_strategies = self.strategy_pool.select_top_performers()
+
+        # 交叉变异
+        new_strategies = self._crossover(best_strategies)
+
+        # 引入随机突变
+        mutated_strategies = self._mutate(new_strategies)
+
+        self.strategy_pool.update(mutated_strategies)
+
+
+class AdaptiveLearningSystem:
+    def __init__(self):
+        self.behavior_patterns = BehaviorPatternDatabase()
+        self.adaptation_engine = AdaptationEngine()
+
+    def observe_and_adapt(self, target_behavior: Dict):
+        """观察目标行为并实时适应"""
+        # 行为模式分析
+        pattern = self._analyze_behavior_pattern(target_behavior)
+
+        # 威胁响应检测
+        if self._detect_defense_response(pattern):
+            # 动态调整策略
+            new_strategy = self.adaptation_engine.generate_evasion(pattern)
+            return new_strategy
+
+        return None
+
+    def _analyze_behavior_pattern(self, behavior: Dict) -> Pattern:
+        """使用深度学习分析行为模式"""
+        # LSTM网络分析时间序列行为
+        # 图神经网络分析关系网络
+        # 异常检测算法识别防御措施
+
+
 
 
 # 使用示例
 if __name__ == "__main__":
     # 创建基础模型
-    # 注意: 这里假设有一个 CognitiveDecisionMaker 类
-    # 如果没有，需要先定义或替换为实际的模型类
     class CognitiveDecisionMaker(nn.Module):
         def __init__(self):
             super().__init__()
@@ -606,14 +767,13 @@ if __name__ == "__main__":
         def forward(self, x):
             return self.fc(x)
 
-
     base_model = CognitiveDecisionMaker()
 
     # 包装为自改进系统，集成AI红队功能
     self_improving_model = SelfImprovingSystem(
         base_model,
-        openai_api_key="your-openai-api-key-here",  # 替换为实际API密钥
-        ollama_model="gemma3"  # 使用Ollama的Gemma3模型
+        openai_api_key="your-openai-api-key-here",
+        ollama_model="gemma3"
     )
 
     # 添加目标信息
@@ -655,3 +815,4 @@ if __name__ == "__main__":
             # 在实际使用中应该传入真实的DataLoader
             improvement = self_improving_model.self_optimize(None, None)
             print(f"Epoch {epoch}: Self-improvement result: {improvement}")
+
